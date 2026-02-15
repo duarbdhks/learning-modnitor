@@ -3,3 +3,26 @@
 CLAUDE.md
 node_modules/
 .DS_Store
+.idea/
+.worktrees/
+
+# Editor / IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Environment / Secrets
+.env
+.env.*
+
+# Logs
+*.log
+
+# Misc
+*.bak
+*.tmp
