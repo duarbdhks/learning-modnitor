@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 5: 장애 원인 분석 통합 프레임워크 | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/auth.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+              900: '#111118',
+              850: '#16161f',
+              800: '#1e1e2a',
+              700: '#2a2a3a',
+              600: '#3a3a4d',
+              400: '#8888a0',
+              300: '#a0a0b8',
+              200: '#c0c0d0',
+              100: '#e0e0ea',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .info-box { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .tip-box { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.08); }
+    .warning-box { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .success-box { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.08); }
+    .sidebar-link.active { color: #60a5fa; border-left-color: #3b82f6; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { color: #93c5fd; border-left-color: #60a5fa; }
+    .erd-diagram { font-family: 'Courier New', monospace; line-height: 1.6; font-size: 0.85rem; }
+    pre[class*="language-"] { border-radius: 0.5rem; margin: 1rem 0; }
+    .quiz-option { transition: all 0.2s; }
+    .quiz-option:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+    .quiz-option.correct { background: rgba(34, 197, 94, 0.15); border-color: #22c55e; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; }
+    .comparison-card { transition: transform 0.2s; }
+    .comparison-card:hover { transform: translateY(-2px); }
+    @media (max-width: 1023px) {
+      .sidebar-toggle-target { display: none; }
+      .sidebar-toggle-target.open { display: block; }
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          홈으로
+        </a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div>
+          <span class="text-blue-400 text-xs font-semibold tracking-wider uppercase">Module 5</span>
+          <h1 class="text-lg sm:text-xl font-bold text-gray-100">장애 원인 분석 통합 프레임워크</h1>
+        </div>
+      </div>
+      <!-- Mobile sidebar toggle -->
+      <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+
+    <!-- Sidebar TOC -->
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">목차</h3>
+        <ul class="space-y-1">
+          <li>
+            <a href="#section-1" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-1">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-1"></span>
+              Incident Timeline 구성법
+            </a>
+          </li>
+          <li>
+            <a href="#section-2" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-2">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-2"></span>
+              지표 간 상관관계 분석
+            </a>
+          </li>
+          <li>
+            <a href="#section-3" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-3">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-3"></span>
+              실전 장애 시나리오
+            </a>
+          </li>
+          <li>
+            <a href="#section-4" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-4">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-4"></span>
+              Runbook 작성법
+            </a>
+          </li>
+          <li>
+            <a href="#section-5" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-5">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-5"></span>
+              Post-mortem 문화
+            </a>
+          </li>
+          <li>
+            <a href="#quiz" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="quiz">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-quiz"></span>
+              퀴즈
+            </a>
+          </li>
+        </ul>
+        <!-- Progress indicator -->
+        <div class="mt-6 pt-4 border-t border-gray-800">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>진행률</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="w-full bg-gray-800 rounded-full h-1.5">
+            <div id="progress-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0">
+
+      <!-- Section 1: Incident Timeline 구성법 -->
+      <section id="section-1" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <span class="text-blue-400 font-bold text-lg">1</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Incident Timeline 구성법</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            <strong class="text-blue-400">타임라인 기반 분석</strong>은 장애 발생 시 가장 먼저 해야 할 작업입니다.
+            시간 축으로 이벤트를 정렬하면 배포, 설정 변경, 지표 변화, 알람 발생 사이의 <strong class="text-gray-100">인과관계</strong>가 명확히 드러납니다.
+          </p>
+
+          <!-- 타임라인 구성 요소 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">타임라인 구성 요소</h3>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-200 text-sm">시간 (UTC 기준)</h4>
+                    <p class="text-xs text-gray-500 mt-1">모든 이벤트의 시간 기준 통일</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-200 text-sm">이벤트 유형</h4>
+                    <p class="text-xs text-gray-500 mt-1">알람, 배포, 설정 변경, 사용자 보고</p>
+                  </div>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-200 text-sm">지표 변화</h4>
+                    <p class="text-xs text-gray-500 mt-1">메트릭 스파이크 / 드롭</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-200 text-sm">조치</h4>
+                    <p class="text-xs text-gray-500 mt-1">누가 무엇을 했는지</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 예시 타임라인 -->
+          <h3 class="text-lg font-bold text-gray-100 mt-8 mb-4">예시 타임라인</h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950 border-b border-gray-800">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">시간 (UTC)</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">이벤트</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">출처</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:15</td>
+                    <td class="px-5 py-3 text-gray-300">배포 v2.3.1 시작</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">CD Pipeline</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:18</td>
+                    <td class="px-5 py-3 text-gray-300">배포 완료, 롤아웃 100%</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">ArgoCD</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50 bg-red-950/20">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:22</td>
+                    <td class="px-5 py-3 text-red-300">RUM p99 응답시간 200ms → 1.2s</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">Datadog RUM</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50 bg-red-950/20">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:25</td>
+                    <td class="px-5 py-3 text-red-300">API 5xx 에러율 0.1% → 5.3%</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">Datadog APM</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50 bg-red-950/20">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:27</td>
+                    <td class="px-5 py-3 text-red-300">RDS CPUUtilization 40% → 92%</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">CloudWatch</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50 bg-yellow-950/20">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:28</td>
+                    <td class="px-5 py-3 text-yellow-300">PagerDuty 알람 발생</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">PagerDuty</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:30</td>
+                    <td class="px-5 py-3 text-gray-300">온콜 엔지니어 확인</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">Slack</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50 bg-blue-950/20">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:35</td>
+                    <td class="px-5 py-3 text-blue-300">원인 파악: 새 쿼리 N+1 문제</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">Performance Insights</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50 bg-emerald-950/20">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:40</td>
+                    <td class="px-5 py-3 text-emerald-300">롤백 시작</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">ArgoCD</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50 bg-emerald-950/20">
+                    <td class="px-5 py-3 text-gray-300 font-mono text-xs">10:43</td>
+                    <td class="px-5 py-3 text-emerald-300">롤백 완료, 지표 정상화</td>
+                    <td class="px-5 py-3 text-gray-500 text-xs">All</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="info-box rounded-lg p-5 mt-6">
+            <p class="text-sm text-gray-300">
+              <strong class="text-blue-400">타임라인의 핵심은 '이벤트 간 인과관계'를 드러내는 것입니다.</strong>
+              배포 → 지표 변화 → 알람의 순서가 보이면 원인을 빠르게 특정할 수 있습니다.
+              위 예시에서 배포(10:18) 직후 RUM p99가 급증(10:22)했고, 이어서 API 에러율과 RDS CPU가 상승한 것으로 보아
+              새 배포 버전에 문제가 있음을 즉시 알 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: 지표 간 상관관계 분석 -->
+      <section id="section-2" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <span class="text-purple-400 font-bold text-lg">2</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">지표 간 상관관계 분석</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            장애 분석에서 가장 중요한 것은 <strong class="text-gray-100">증상에서 원인으로의 추적</strong>입니다.
+            사용자가 경험하는 문제(프론트엔드)부터 시작해서 백엔드, 인프라 순서로 위에서 아래로 원인을 찾아가는 3-Layer 모델을 사용합니다.
+          </p>
+
+          <!-- 3-Layer 상관 분석 모델 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">3-Layer 상관 분석 모델</h3>
+            <div class="space-y-0">
+              <!-- Layer 1 -->
+              <div class="border-2 border-blue-900/50 bg-blue-950/20 rounded-t-xl p-5">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-blue-500/30 flex items-center justify-center">
+                    <span class="text-blue-300 font-bold">1</span>
+                  </div>
+                  <h4 class="font-semibold text-blue-300">Layer 1: 프론트엔드 (Datadog RUM)</h4>
+                </div>
+                <p class="text-sm text-gray-400 ml-11">p99 응답시간, 에러율, CWV (Core Web Vitals)</p>
+              </div>
+              <div class="flex justify-center -my-px">
+                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+              <!-- Layer 2 -->
+              <div class="border-2 border-purple-900/50 bg-purple-950/20 p-5">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-purple-500/30 flex items-center justify-center">
+                    <span class="text-purple-300 font-bold">2</span>
+                  </div>
+                  <h4 class="font-semibold text-purple-300">Layer 2: 백엔드 (Datadog APM)</h4>
+                </div>
+                <p class="text-sm text-gray-400 ml-11">API 레이턴시, 에러율, 처리량 (Throughput)</p>
+              </div>
+              <div class="flex justify-center -my-px">
+                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+              <!-- Layer 3 -->
+              <div class="border-2 border-orange-900/50 bg-orange-950/20 rounded-b-xl p-5">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-orange-500/30 flex items-center justify-center">
+                    <span class="text-orange-300 font-bold">3</span>
+                  </div>
+                  <h4 class="font-semibold text-orange-300">Layer 3: 인프라 (CloudWatch + K8s)</h4>
+                </div>
+                <p class="text-sm text-gray-400 ml-11">RDS CPU, Pod Memory, Node 상태, IOPS</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 상관관계 패턴 테이블 -->
+          <h3 class="text-lg font-bold text-gray-100 mt-8 mb-4">상관관계 패턴 테이블</h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950 border-b border-gray-800">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">프론트엔드 증상</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">백엔드 원인</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">인프라 원인</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-300">RUM p99 스파이크</td>
+                    <td class="px-5 py-3 text-purple-300">API 레이턴시 증가</td>
+                    <td class="px-5 py-3 text-orange-300">RDS CPU 급증 / Slow Query</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-300">JS Error 급증</td>
+                    <td class="px-5 py-3 text-purple-300">API 5xx 증가</td>
+                    <td class="px-5 py-3 text-orange-300">Pod CrashLoopBackOff / OOMKill</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-300">페이지 로드 실패</td>
+                    <td class="px-5 py-3 text-purple-300">API 타임아웃</td>
+                    <td class="px-5 py-3 text-orange-300">DB 커넥션 풀 고갈</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-300">CLS 증가</td>
+                    <td class="px-5 py-3 text-purple-300">API 응답 불일치</td>
+                    <td class="px-5 py-3 text-orange-300">RDS Replica Lag</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-300">LCP 증가</td>
+                    <td class="px-5 py-3 text-purple-300">정적 리소스 지연</td>
+                    <td class="px-5 py-3 text-orange-300">CDN/Storage 병목</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="tip-box rounded-lg p-5 mt-6">
+            <p class="text-sm text-gray-300">
+              <strong class="text-yellow-400">Tip: 항상 '위에서 아래로' 추적하세요.</strong>
+              사용자가 경험한 증상(RUM) → 백엔드 원인(APM) → 인프라 근본 원인(CloudWatch/K8s) 순서로 진행합니다.
+              거꾸로 인프라부터 보면 정작 사용자에게 영향이 없는 false alarm에 시간을 낭비할 수 있습니다.
+              예를 들어 RDS CPU가 90%라도 사용자 경험에 영향이 없다면 P2 이하로 분류할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: 5가지 실전 장애 시나리오 워크스루 -->
+      <section id="section-3" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+            <span class="text-cyan-400 font-bold text-lg">3</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">5가지 실전 장애 시나리오 워크스루</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          실제 프로덕션 환경에서 자주 발생하는 5가지 장애 시나리오를 통해 분석 프로세스를 익혀봅시다.
+          각 시나리오는 <strong class="text-gray-100">증상 → 타임라인 → 원인 분석 → 해결 → 예방 조치</strong> 구조로 정리되어 있습니다.
+        </p>
+
+        <!-- 시나리오 A: DB 커넥션 풀 고갈 -->
+        <div class="bg-gray-900 border border-red-900/50 rounded-xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <span class="text-red-400 font-bold">A</span>
+            </div>
+            <h3 class="text-xl font-bold text-red-300">DB 커넥션 풀 고갈</h3>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                증상
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">API 응답 타임아웃 급증, RUM 에러율 5%+, 사용자 "로그인이 안 돼요" 문의 급증</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                원인
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">슬로우 쿼리가 커넥션을 장시간 점유 → 새 요청이 커넥션을 얻지 못함 → 타임아웃</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">지표 경로</h4>
+              <div class="ml-6 bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-400">
+                <span class="text-blue-300">RUM 에러</span> → <span class="text-purple-300">APM timeout</span> → <span class="text-orange-300">RDS DatabaseConnections = max_connections (100/100)</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">해결</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>1. 슬로우 쿼리 kill (Performance Insights에서 확인)</li>
+                <li>2. 인덱스 추가하여 쿼리 최적화</li>
+                <li>3. 커넥션 풀 타임아웃 설정 (30초 → 10초)</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">예방 조치</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>• 커넥션 풀 사용률 모니터링 알람 (> 80%)</li>
+                <li>• Slow query log 활성화 및 주기적 리뷰</li>
+                <li>• EXPLAIN으로 배포 전 쿼리 성능 검증</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 시나리오 B: K8s Node Memory Pressure → Pod Eviction -->
+        <div class="bg-gray-900 border border-orange-900/50 rounded-xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              <span class="text-orange-400 font-bold">B</span>
+            </div>
+            <h3 class="text-xl font-bold text-orange-300">K8s Node Memory Pressure → Pod Eviction</h3>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                증상
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">간헐적 502 에러, 특정 서비스 Pod가 주기적으로 재시작</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                원인
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">DaemonSet 업데이트로 노드 메모리 사용 증가 → MemoryPressure 발생 → BestEffort QoS Pod 퇴거</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">지표 경로</h4>
+              <div class="ml-6 bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-400">
+                <span class="text-blue-300">RUM 간헐적 에러</span> → <span class="text-purple-300">APM 특정 Pod 실패</span> → <span class="text-orange-300">Node MemoryPressure Event</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">해결</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>1. DaemonSet 리소스 limits 설정 (메모리 제한)</li>
+                <li>2. 퇴거된 Pod의 QoS를 Guaranteed로 변경 (requests = limits)</li>
+                <li>3. 노드 증설 또는 메모리 업그레이드</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">예방 조치</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>• Node Memory 알람 (> 85%)</li>
+                <li>• 모든 프로덕션 Pod에 requests/limits 명시 (Guaranteed QoS)</li>
+                <li>• DaemonSet 업데이트 전 메모리 영향 평가</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 시나리오 C: RDS Replica Lag → 데이터 불일치 -->
+        <div class="bg-gray-900 border border-yellow-900/50 rounded-xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+              <span class="text-yellow-400 font-bold">C</span>
+            </div>
+            <h3 class="text-xl font-bold text-yellow-300">RDS Replica Lag → 데이터 불일치</h3>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                증상
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">"학습 완료했는데 진도가 안 올라가요" CS 접수, 사용자 데이터 불일치 신고</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                원인
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">대량 배치 작업으로 Primary 쓰기 부하 → Replica Lag 30초+ → 읽기 API가 오래된 데이터 반환</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">지표 경로</h4>
+              <div class="ml-6 bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-400">
+                <span class="text-blue-300">CS 접수</span> → <span class="text-purple-300">읽기 API 확인</span> → <span class="text-orange-300">Replica 사용 확인</span> → <span class="text-red-300">ReplicaLag 30s</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">해결</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>1. Critical 읽기(쓰기 직후 읽기)는 Primary로 라우팅</li>
+                <li>2. 배치 작업 시간대 조정 (트래픽 낮은 새벽으로)</li>
+                <li>3. 배치 작업 쓰기 속도 throttling</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">예방 조치</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>• ReplicaLag 알람 (> 5s)</li>
+                <li>• 쓰기 후 읽기 패턴에 Primary 강제 지정 (read-after-write consistency)</li>
+                <li>• Replica 인스턴스 스펙 업그레이드</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 시나리오 D: HPA 스케일 한계 → CPU Throttling → p99 급증 -->
+        <div class="bg-gray-900 border border-purple-900/50 rounded-xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+              <span class="text-purple-400 font-bold">D</span>
+            </div>
+            <h3 class="text-xl font-bold text-purple-300">HPA 스케일 한계 → CPU Throttling → p99 급증</h3>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                증상
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">점진적 p99 증가, 특정 시간대(10시, 피크)에 악화</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                원인
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">HPA maxReplicas(10) 도달 → 추가 스케일 불가 → 각 Pod CPU throttling 발생</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">지표 경로</h4>
+              <div class="ml-6 bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-400">
+                <span class="text-blue-300">RUM p99 증가</span> → <span class="text-purple-300">APM 레이턴시 패턴</span> → <span class="text-orange-300">K8s HPA (10/10)</span> → <span class="text-red-300">CPU throttling</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">해결</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>1. HPA maxReplicas 상향 (10 → 20)</li>
+                <li>2. Node 추가 (Cluster Autoscaler)</li>
+                <li>3. CPU limits 상향 또는 제거 (throttling 방지)</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">예방 조치</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>• HPA 여유도 모니터링 (current/max ratio > 80% 알람)</li>
+                <li>• 피크 시간 대비 사전 스케일 (Scheduled HPA)</li>
+                <li>• CPU throttling 메트릭 모니터링</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 시나리오 E: IOPS Burst Credit 소진 → 전체 서비스 저하 -->
+        <div class="bg-gray-900 border border-pink-900/50 rounded-xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+              <span class="text-pink-400 font-bold">E</span>
+            </div>
+            <h3 class="text-xl font-bold text-pink-300">IOPS Burst Credit 소진 → 전체 서비스 저하</h3>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                증상
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">점진적 전체 서비스 성능 저하, 특정 시점(14:00)부터 급격히 악화</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                원인
+              </h4>
+              <p class="text-sm text-gray-400 ml-6">gp2 볼륨의 Burst Credit 소진 → 기본 IOPS(300)로 제한 → 모든 쿼리 지연</p>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">지표 경로</h4>
+              <div class="ml-6 bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-400">
+                <span class="text-blue-300">전체 서비스 지연</span> → <span class="text-purple-300">RDS ReadLatency/WriteLatency 급증</span> → <span class="text-orange-300">DiskQueueDepth 증가</span> → <span class="text-red-300">BurstBalance = 0</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">해결</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>1. gp3로 변경 (기본 3,000 IOPS, Burst Credit 불필요)</li>
+                <li>2. 또는 io2로 IOPS 프로비저닝 (안정적 성능 보장)</li>
+                <li>3. 대량 읽기/쓰기 작업 분산</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-gray-200 mb-2">예방 조치</h4>
+              <ul class="ml-6 space-y-1 text-sm text-gray-400">
+                <li>• BurstBalance 모니터링 (< 20% 알람)</li>
+                <li>• 모든 프로덕션 RDS를 gp2 → gp3 마이그레이션</li>
+                <li>• IOPS 사용량 추세 분석 및 적정 볼륨 타입 선택</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="success-box rounded-lg p-5">
+          <h4 class="font-semibold text-emerald-400 mb-2">패턴 인식의 중요성</h4>
+          <p class="text-sm text-gray-300">
+            위 5가지 시나리오를 반복적으로 학습하면, 실제 장애 상황에서 증상만 보고도 "아, 이건 시나리오 C 패턴이네"라고 빠르게 인식할 수 있습니다.
+            패턴 인식 능력은 경험이 쌓일수록 강화되며, 평균 복구 시간(MTTR)을 크게 단축시킵니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- Section 4: Runbook 작성법 -->
+      <section id="section-4" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+            <span class="text-indigo-400 font-bold text-lg">4</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Runbook 작성법</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            <strong class="text-indigo-400">Runbook</strong>은 장애 대응 절차서입니다.
+            누구나 따라할 수 있도록 구조화된 문서로, 신규 엔지니어도 온콜 상황에서 즉시 대응할 수 있게 합니다.
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">Runbook 템플릿</h3>
+            <pre class="bg-gray-950 rounded-lg p-4 text-sm overflow-x-auto"><code class="language-markdown"># [서비스명] [장애유형] Runbook
+
+## 트리거 조건
+- 어떤 알람이 발생했을 때 이 Runbook을 실행하는지
+
+## 심각도 판단
+- P1 (전체 서비스 중단): 즉시 에스컬레이션
+- P2 (부분 장애): 30분 내 해결 시도
+- P3 (성능 저하): 업무 시간 내 해결
+
+## 진단 단계
+1. [첫 번째 확인 사항] - 명령어/URL 포함
+2. [두 번째 확인 사항]
+3. [분기 판단] - A이면 → Step 4a, B이면 → Step 4b
+
+## 조치 단계
+- [조치 1]: 롤백 / 스케일업 / 설정 변경
+- [조치 2]: ...
+
+## 확인 단계
+- 지표가 정상으로 돌아왔는지 확인
+- 사용자 영향이 해소되었는지 확인
+
+## 에스컬레이션
+- 15분 내 해결 안 되면 → 시니어 엔지니어
+- 30분 내 해결 안 되면 → 팀 리드</code></pre>
+          </div>
+
+          <!-- 실전 예시 Runbook -->
+          <h3 class="text-lg font-bold text-gray-100 mt-8 mb-4">실전 예시: API 응답 타임아웃 Runbook</h3>
+          <div class="bg-gray-900 border border-indigo-900/50 rounded-xl p-6">
+            <pre class="bg-gray-950 rounded-lg p-4 text-sm overflow-x-auto"><code class="language-markdown"># [밀당영어] API 응답 타임아웃 Runbook
+
+## 트리거 조건
+- Datadog APM p99 레이턴시 > 3초 for 5분
+- PagerDuty 알람: "API Timeout Spike"
+
+## 심각도 판단
+- 에러율 > 5%: P1 (즉시 대응)
+- 에러율 1-5%: P2 (30분 내 해결)
+- 에러율 < 1%: P3 (모니터링)
+
+## 진단 단계
+1. Datadog APM에서 어느 엔드포인트가 느린지 확인
+   https://app.datadoghq.com/apm/services/api-service
+2. RDS Performance Insights에서 슬로우 쿼리 확인
+   https://console.aws.amazon.com/rds/performance-insights
+3. 커넥션 풀 사용률 확인
+   CloudWatch → RDS → DatabaseConnections
+
+## 조치 단계
+- **시나리오 A: 슬로우 쿼리 발견**
+  1. 쿼리 ID 복사 → RDS 콘솔에서 KILL
+  2. 해당 쿼리 코드 위치 파악 (APM Trace)
+  3. 임시 조치: 해당 엔드포인트 rate limiting
+  4. 근본 해결: 인덱스 추가 (DBA 협의)
+
+- **시나리오 B: 커넥션 풀 고갈**
+  1. kubectl scale deployment api-service --replicas=20
+  2. RDS 커넥션 풀 max_connections 증가 (100 → 200)
+  3. 애플리케이션 재시작
+
+## 확인 단계
+- Datadog APM p99 < 500ms로 회복
+- 에러율 < 0.1%
+- #incident-channel에 "해결 완료" 메시지
+
+## 에스컬레이션
+- 15분 내 미해결 → @senior-engineer Slack 멘션
+- 30분 내 미해결 → @team-lead 전화</code></pre>
+          </div>
+
+          <div class="info-box rounded-lg p-5 mt-6">
+            <p class="text-sm text-gray-300">
+              <strong class="text-blue-400">좋은 Runbook의 핵심: 새로 입사한 엔지니어도 따라할 수 있을 정도로 구체적이어야 합니다.</strong>
+              명령어는 복사-붙여넣기 가능하게, URL은 직접 클릭 가능하게, 판단 기준은 수치로 명확하게 작성하세요.
+              "적절히 판단하여" 같은 모호한 표현은 피해야 합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: Post-mortem 문화 -->
+      <section id="section-5" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center">
+            <span class="text-rose-400 font-bold text-lg">5</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Post-mortem 문화</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            <strong class="text-rose-400">Post-mortem</strong>은 장애 발생 후 근본 원인을 분석하고 재발 방지 대책을 수립하는 프로세스입니다.
+            핵심은 <strong class="text-gray-100">"누가 잘못했는가?"가 아니라 "왜 이것이 가능했는가?"</strong>를 묻는 것입니다.
+          </p>
+
+          <!-- Blameless Post-mortem -->
+          <div class="bg-gray-900 border border-rose-900/50 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-rose-300 mb-4">Blameless Post-mortem</h3>
+            <p class="text-sm text-gray-400 mb-4">
+              사람이 아닌 <strong class="text-gray-200">시스템/프로세스의 문제</strong>에 초점을 맞춥니다.
+            </p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-red-950/30 border border-red-900/50 rounded-lg p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <h4 class="font-semibold text-red-300">잘못된 질문</h4>
+                </div>
+                <p class="text-sm text-gray-400">"누가 실수했는가?"</p>
+                <p class="text-xs text-gray-600 mt-2">개인 비난, 책임 전가, 방어적 태도 유발</p>
+              </div>
+              <div class="bg-emerald-950/30 border border-emerald-900/50 rounded-lg p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  <h4 class="font-semibold text-emerald-300">올바른 질문</h4>
+                </div>
+                <p class="text-sm text-gray-400">"왜 이 실수가 가능했는가?"</p>
+                <p class="text-xs text-gray-500 mt-2">시스템 개선, 프로세스 보완, 학습 문화</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5 Whys 기법 -->
+          <h3 class="text-lg font-bold text-gray-100 mt-8 mb-4">5 Whys 기법</h3>
+          <p class="text-sm text-gray-400 mb-4">
+            "왜?"를 반복적으로 물어 근본 원인(Root Cause)을 찾는 분석 기법입니다.
+          </p>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div class="space-y-4">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">1</div>
+                <div>
+                  <p class="text-gray-300 font-semibold">왜 서비스가 다운됐나?</p>
+                  <p class="text-sm text-gray-500 mt-1">→ DB 커넥션 풀 고갈</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">2</div>
+                <div>
+                  <p class="text-gray-300 font-semibold">왜 커넥션 풀이 고갈됐나?</p>
+                  <p class="text-sm text-gray-500 mt-1">→ 슬로우 쿼리가 커넥션을 장시간 점유</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">3</div>
+                <div>
+                  <p class="text-gray-300 font-semibold">왜 슬로우 쿼리가 발생했나?</p>
+                  <p class="text-sm text-gray-500 mt-1">→ 인덱스 없이 대용량 테이블 풀 스캔</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">4</div>
+                <div>
+                  <p class="text-gray-300 font-semibold">왜 인덱스가 없었나?</p>
+                  <p class="text-sm text-gray-500 mt-1">→ 코드 리뷰에서 쿼리 성능 검증 없음</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-rose-800 flex items-center justify-center text-rose-200 font-bold flex-shrink-0">5</div>
+                <div>
+                  <p class="text-gray-300 font-semibold">왜 쿼리 성능 검증이 없었나?</p>
+                  <p class="text-sm text-gray-500 mt-1">→ CI/CD에 EXPLAIN 자동 검사 미포함</p>
+                  <div class="mt-3 bg-emerald-950/30 border border-emerald-900/50 rounded-lg p-3">
+                    <p class="text-emerald-300 font-semibold text-sm">Action Item</p>
+                    <p class="text-xs text-gray-400 mt-1">CI/CD에 EXPLAIN 자동 검증 단계 추가 (담당: DevOps팀, 기한: 2주)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Post-mortem 문서 구조 -->
+          <h3 class="text-lg font-bold text-gray-100 mt-8 mb-4">Post-mortem 문서 구조</h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950 border-b border-gray-800">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium w-1/4">항목</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">내용</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">제목</td>
+                    <td class="px-5 py-3 text-gray-400">간결한 장애 설명 (예: "API 타임아웃으로 인한 서비스 장애")</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">날짜/시간</td>
+                    <td class="px-5 py-3 text-gray-400">장애 발생~복구 시간 (UTC 기준)</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">영향 범위</td>
+                    <td class="px-5 py-3 text-gray-400">영향받은 사용자 수, 서비스, 매출 손실 추정치</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">타임라인</td>
+                    <td class="px-5 py-3 text-gray-400">시간순 이벤트 기록 (배포, 알람, 조치)</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">근본 원인</td>
+                    <td class="px-5 py-3 text-gray-400">5 Whys 분석 결과 및 시스템적 취약점</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">해결 조치</td>
+                    <td class="px-5 py-3 text-gray-400">즉각 해결한 방법 (롤백, 스케일업 등)</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">Action Items</td>
+                    <td class="px-5 py-3 text-gray-400">재발 방지를 위한 구체적 태스크 (담당자, 기한 명시)</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-300 font-semibold">교훈</td>
+                    <td class="px-5 py-3 text-gray-400">잘한 점, 개선할 점, 팀이 배운 것</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="tip-box rounded-lg p-5 mt-6">
+            <p class="text-sm text-gray-300">
+              <strong class="text-yellow-400">Tip: Post-mortem은 비난이 아니라 학습을 위한 것입니다.</strong>
+              장애는 시스템을 개선하는 가장 좋은 기회입니다.
+              "실수를 한 사람"이 아니라 "실수를 가능하게 한 시스템"을 고치면, 같은 장애가 반복되지 않습니다.
+              모든 Action Item은 담당자와 기한을 명시하고, 다음 회고에서 완료 여부를 반드시 확인하세요.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quiz Section -->
+      <section id="quiz" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">퀴즈</h2>
+        </div>
+
+        <p class="text-gray-400 text-sm mb-6">
+          학습한 내용을 확인해봅시다. 5문제를 모두 풀어보세요.
+        </p>
+
+        <div id="quiz-container">
+          <!-- Quiz questions will be rendered here by QuizEngine -->
+        </div>
+      </section>
+
+      <!-- Bottom Navigation -->
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <!-- Complete Button -->
+        <div class="flex justify-center mb-8">
+          <button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950">
+            학습 완료
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between">
+          <a href="4-kubernetes-monitoring.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Module 4: Kubernetes
+          </a>
+          <a href="6-dashboard-design.html" class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+            Module 6: 대시보드 설계
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+  <script src="../js/progress.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    // ===== Quiz Initialization =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const questions = [
+        {
+          type: 'choice',
+          question: 'Incident Timeline을 구성할 때 가장 중요한 목적은?',
+          options: ['책임자를 찾기 위해', '이벤트 간 인과관계를 드러내기 위해', '알람 발생 시간을 기록하기 위해', '보고서 작성을 위해'],
+          answer: 1,
+          explanation: '타임라인의 핵심 목적은 이벤트 간 인과관계를 시간순으로 드러내는 것입니다. 배포 → 지표 변화 → 장애 순서가 보이면 원인을 빠르게 특정할 수 있습니다.'
+        },
+        {
+          type: 'choice',
+          question: 'RUM에서 p99 스파이크 → APM에서 API 레이턴시 증가 → CloudWatch에서 RDS CPU 급증. 이 추적 방향을 올바르게 설명한 것은?',
+          options: ['인프라 → 백엔드 → 프론트엔드', '프론트엔드 → 백엔드 → 인프라', '랜덤 순서로 확인', '가장 심각한 것부터'],
+          answer: 1,
+          explanation: '장애 추적은 사용자 경험(프론트엔드/RUM) → 백엔드(APM) → 인프라(CloudWatch/K8s) 순서로 위에서 아래로 진행합니다.'
+        },
+        {
+          type: 'choice',
+          question: '"학습 완료했는데 진도가 안 올라가요" CS가 접수되었습니다. 가장 의심되는 원인은?',
+          options: ['CDN 캐시 문제', 'RDS Read Replica의 Replication Lag', 'K8s Pod OOMKill', 'Datadog RUM SDK 오류'],
+          answer: 1,
+          explanation: '쓰기(Primary)는 성공했지만 읽기(Replica)에 아직 반영되지 않은 Replication Lag 문제입니다. 쓰기 직후 읽기는 Primary에서 수행해야 합니다.'
+        },
+        {
+          type: 'choice',
+          question: 'Blameless Post-mortem에서 올바른 접근 방식은?',
+          options: ['"누가 이 코드를 배포했는가?"', '"왜 이 실수가 가능한 시스템이었는가?"', '"실수한 사람에게 경고를 주어야 한다"', '"다음부터 더 조심하자"'],
+          answer: 1,
+          explanation: 'Blameless Post-mortem은 개인의 실수가 아닌 시스템/프로세스의 취약점에 초점을 맞춥니다. "왜 이것이 가능했는가?"를 묻고 시스템적 해결책을 찾습니다.'
+        },
+        {
+          type: 'short',
+          question: '근본 원인을 찾기 위해 "왜?"를 반복적으로 묻는 분석 기법의 이름은? (숫자 포함, 영어)',
+          answer: '5 Whys',
+          explanation: '5 Whys는 문제의 근본 원인을 찾기 위해 "왜?"를 반복(보통 5회)하는 분석 기법입니다. Toyota Production System에서 유래했습니다.'
+        }
+      ];
+
+      if (typeof QuizEngine !== 'undefined') {
+        QuizEngine.init('quiz-container', questions, 'module5');
+      }
+
+      // Update completion button state
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module5')) {
+        markButtonComplete();
+      }
+
+      // Initialize sidebar active states
+      initSidebar();
+    });
+
+    // ===== Complete Button Handler =====
+    function handleComplete() {
+      if (typeof ProgressTracker !== 'undefined') {
+        ProgressTracker.markComplete('module5');
+      }
+      markButtonComplete();
+    }
+
+    function markButtonComplete() {
+      var btn = document.getElementById('complete-btn');
+      if (btn) {
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'completed');
+        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>학습 완료됨';
+      }
+    }
+
+    // ===== Sidebar Navigation =====
+    function initSidebar() {
+      var sections = document.querySelectorAll('section[id]');
+      var sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+      // Intersection observer for active section tracking
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            sidebarLinks.forEach(function(link) {
+              link.classList.remove('active');
+              if (link.getAttribute('data-section') === id) {
+                link.classList.add('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-20% 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+
+      // Sidebar link click -> close mobile sidebar
+      sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var sidebar = document.getElementById('sidebar');
+          if (window.innerWidth < 1024) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    // ===== Progress Tracking =====
+    function updateProgress() {
+      var totalSections = 6;
+      var completed = 0;
+      for (var i = 1; i <= 5; i++) {
+        var check = document.getElementById('check-section-' + i);
+        if (check && check.classList.contains('done')) completed++;
+      }
+      var quizCheck = document.getElementById('check-quiz');
+      if (quizCheck && quizCheck.classList.contains('done')) completed++;
+
+      var percent = Math.round((completed / totalSections) * 100);
+      var bar = document.getElementById('progress-bar');
+      var percentText = document.getElementById('progress-percent');
+      if (bar) bar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+    }
+  </script>
+</body>
+</html>

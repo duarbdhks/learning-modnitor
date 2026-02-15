@@ -1,0 +1,5 @@
+.claude/
+.omc/
+CLAUDE.md
+node_modules/
+.DS_Store

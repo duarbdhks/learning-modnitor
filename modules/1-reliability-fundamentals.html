@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 1: 서비스 신뢰성 지표 기본 | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/auth.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+              900: '#111118',
+              850: '#16161f',
+              800: '#1e1e2a',
+              700: '#2a2a3a',
+              600: '#3a3a4d',
+              400: '#8888a0',
+              300: '#a0a0b8',
+              200: '#c0c0d0',
+              100: '#e0e0ea',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .info-box { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .tip-box { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.08); }
+    .warning-box { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .success-box { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.08); }
+    .sidebar-link.active { color: #60a5fa; border-left-color: #3b82f6; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { color: #93c5fd; border-left-color: #60a5fa; }
+    pre[class*="language-"] { border-radius: 0.5rem; margin: 1rem 0; }
+    .quiz-option { transition: all 0.2s; }
+    .quiz-option:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+    .quiz-option.correct { background: rgba(34, 197, 94, 0.15); border-color: #22c55e; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; }
+    .comparison-card { transition: transform 0.2s; }
+    .comparison-card:hover { transform: translateY(-2px); }
+    @media (max-width: 1023px) {
+      .sidebar-toggle-target { display: none; }
+      .sidebar-toggle-target.open { display: block; }
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          홈으로
+        </a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div>
+          <span class="text-blue-400 text-xs font-semibold tracking-wider uppercase">Module 1</span>
+          <h1 class="text-lg sm:text-xl font-bold text-gray-100">서비스 신뢰성 지표 기본</h1>
+        </div>
+      </div>
+      <!-- Mobile sidebar toggle -->
+      <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+
+    <!-- Sidebar TOC -->
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">목차</h3>
+        <ul class="space-y-1">
+          <li>
+            <a href="#section-1" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-1">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-1"></span>
+              왜 모니터링인가?
+            </a>
+          </li>
+          <li>
+            <a href="#section-2" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-2">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-2"></span>
+              SLI / SLO / SLA
+            </a>
+          </li>
+          <li>
+            <a href="#section-3" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-3">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-3"></span>
+              Four Golden Signals
+            </a>
+          </li>
+          <li>
+            <a href="#section-4" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-4">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-4"></span>
+              모니터링 도구 생태계
+            </a>
+          </li>
+          <li>
+            <a href="#quiz" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="quiz">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-quiz"></span>
+              퀴즈
+            </a>
+          </li>
+        </ul>
+        <!-- Progress indicator -->
+        <div class="mt-6 pt-4 border-t border-gray-800">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>진행률</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="w-full bg-gray-800 rounded-full h-1.5">
+            <div id="progress-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0">
+
+      <!-- Section 1: 왜 모니터링인가? -->
+      <section id="section-1" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <span class="text-blue-400 font-bold text-lg">1</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">왜 모니터링인가?</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            서비스를 운영하다 보면 필연적으로 <strong class="text-red-400">장애</strong>를 만나게 됩니다.
+            서버가 다운되거나, 응답 속도가 느려지거나, 데이터베이스가 멈추는 상황은 피할 수 없습니다.
+            <strong class="text-gray-100">서비스 규모가 커질수록 장애 확률은 1에 수렴합니다.</strong>
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">장애 대응 사이클</h3>
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div class="text-center p-4">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-500/15 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </div>
+                <h4 class="font-semibold text-red-400 mb-1">1. Detect</h4>
+                <p class="text-sm text-gray-400">장애 감지</p>
+              </div>
+              <div class="text-center p-4">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                <h4 class="font-semibold text-amber-400 mb-1">2. Diagnose</h4>
+                <p class="text-sm text-gray-400">원인 진단</p>
+              </div>
+              <div class="text-center p-4">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h4 class="font-semibold text-emerald-400 mb-1">3. Resolve</h4>
+                <p class="text-sm text-gray-400">복구</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">핵심 지표</h3>
+            <div class="space-y-4">
+              <div class="flex items-start gap-3">
+                <div class="w-20 flex-shrink-0">
+                  <span class="inline-block px-2 py-1 text-xs font-mono font-bold bg-blue-500/20 text-blue-400 rounded">MTTD</span>
+                </div>
+                <div>
+                  <h4 class="font-semibold text-gray-100 mb-1">Mean Time To Detect</h4>
+                  <p class="text-sm text-gray-400">장애 발생부터 <strong class="text-gray-200">인지</strong>까지 걸리는 평균 시간</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-20 flex-shrink-0">
+                  <span class="inline-block px-2 py-1 text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 rounded">MTTR</span>
+                </div>
+                <div>
+                  <h4 class="font-semibold text-gray-100 mb-1">Mean Time To Resolve</h4>
+                  <p class="text-sm text-gray-400">장애 인지부터 <strong class="text-gray-200">복구</strong>까지 걸리는 평균 시간</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-box rounded-lg p-5">
+            <h4 class="font-semibold text-blue-400 mb-2">모니터링의 궁극적 목표</h4>
+            <p class="text-sm text-gray-300">
+              모니터링의 궁극적 목표는 <strong>MTTD와 MTTR을 줄이는 것</strong>입니다.
+              장애를 빨리 발견하고(MTTD ↓), 빨리 복구하면(MTTR ↓) 사용자에게 미치는 영향을 최소화할 수 있습니다.
+            </p>
+          </div>
+
+          <!-- 비교 카드 -->
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="comparison-card bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <div class="flex items-center gap-2 mb-3">
+                <div class="w-3 h-3 rounded-full bg-red-600"></div>
+                <h4 class="font-semibold text-red-400 text-sm uppercase tracking-wider">모니터링 없는 팀</h4>
+              </div>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-400">MTTD</span>
+                  <span class="text-red-400 font-bold">30분+</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">MTTR</span>
+                  <span class="text-red-400 font-bold">2시간+</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-3">고객이 먼저 문의해야 장애를 알게 됨</p>
+              </div>
+            </div>
+            <div class="comparison-card bg-gray-900 border border-emerald-900/50 rounded-xl p-5">
+              <div class="flex items-center gap-2 mb-3">
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <h4 class="font-semibold text-emerald-400 text-sm uppercase tracking-wider">모니터링 있는 팀</h4>
+              </div>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-400">MTTD</span>
+                  <span class="text-emerald-400 font-bold">1분</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">MTTR</span>
+                  <span class="text-emerald-400 font-bold">15분</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-3">알람이 즉시 울리고 빠르게 원인 파악</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: SLI / SLO / SLA -->
+      <section id="section-2" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <span class="text-purple-400 font-bold text-lg">2</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">SLI / SLO / SLA</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          서비스 신뢰성을 정량적으로 측정하고 관리하기 위해서는 SLI, SLO, SLA라는 세 가지 개념을 이해해야 합니다.
+          이들은 Google SRE(Site Reliability Engineering)에서 정립한 핵심 개념입니다.
+        </p>
+
+        <!-- SLI -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-blue-400">SLI</span>
+            <span class="text-gray-500 text-base font-normal">Service Level Indicator</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              <strong class="text-gray-100">서비스 품질을 나타내는 정량적 측정값</strong>입니다.
+              실제로 측정 가능한 지표여야 하며, 사용자 경험과 직접적으로 연관되어야 합니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">SLI 예시</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-500 mt-0.5">•</span>
+                  API 응답시간 p99 (99%의 요청이 이 시간 안에 응답)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-500 mt-0.5">•</span>
+                  에러율 (전체 요청 중 5xx 에러 비율)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-500 mt-0.5">•</span>
+                  가용성(Uptime) (서비스가 정상 동작한 시간 비율)
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLO -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-emerald-400">SLO</span>
+            <span class="text-gray-500 text-base font-normal">Service Level Objective</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              <strong class="text-gray-100">SLI에 대한 목표값</strong>입니다.
+              "이 정도는 되어야 한다"는 내부 목표를 수치화한 것입니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">SLO 예시</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  "API p99 응답시간 &lt; 200ms"
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  "월간 가용성 99.9%"
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  "에러율 &lt; 0.1%"
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLA -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-rose-400">SLA</span>
+            <span class="text-gray-500 text-base font-normal">Service Level Agreement</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              <strong class="text-gray-100">고객과의 계약</strong>입니다.
+              SLO를 못 지키면 페널티(환불, 크레딧 지급 등)가 발생합니다.
+              SLA는 보통 SLO보다 느슨하게 설정합니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">SLA 예시</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-rose-500 mt-0.5">•</span>
+                  "가용성 99.95% 미달 시 크레딧 10% 환불"
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-rose-500 mt-0.5">•</span>
+                  "가용성 99.5% 미달 시 크레딧 25% 환불"
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 비교 테이블 -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-8">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-950">
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">개념</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">정의</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">대상</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">예시</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">위반 시</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-800">
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-blue-400 font-semibold">SLI</td>
+                  <td class="px-5 py-3 text-gray-300">측정값</td>
+                  <td class="px-5 py-3 text-gray-400">내부</td>
+                  <td class="px-5 py-3 text-gray-400">p99 = 150ms</td>
+                  <td class="px-5 py-3 text-gray-500">-</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-emerald-400 font-semibold">SLO</td>
+                  <td class="px-5 py-3 text-gray-300">목표값</td>
+                  <td class="px-5 py-3 text-gray-400">내부</td>
+                  <td class="px-5 py-3 text-gray-400">p99 &lt; 200ms</td>
+                  <td class="px-5 py-3 text-gray-400">내부 개선 작업</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-rose-400 font-semibold">SLA</td>
+                  <td class="px-5 py-3 text-gray-300">계약</td>
+                  <td class="px-5 py-3 text-gray-400">고객</td>
+                  <td class="px-5 py-3 text-gray-400">가용성 99.9%</td>
+                  <td class="px-5 py-3 text-red-400">페널티 발생</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Error Budget -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
+          <h3 class="text-lg font-bold text-gray-100 mb-4">Error Budget (오류 예산)</h3>
+          <p class="text-gray-300 mb-4">
+            SLO가 99.9%라는 것은 <strong class="text-gray-100">0.1%는 실패해도 괜찮다</strong>는 뜻입니다.
+            이 실패 허용치를 <strong class="text-emerald-400">Error Budget</strong>이라고 합니다.
+          </p>
+          <div class="bg-gray-950 rounded-lg p-4 mb-4">
+            <h4 class="text-sm font-semibold text-gray-400 mb-3">계산 예시</h4>
+            <div class="space-y-2 text-sm text-gray-400">
+              <div class="flex justify-between">
+                <span>SLO 99.9% (한 달 기준)</span>
+                <span class="text-gray-500">→</span>
+                <span class="text-yellow-400 font-mono">43.8분 다운타임 허용</span>
+              </div>
+              <div class="flex justify-between">
+                <span>SLO 99.99%</span>
+                <span class="text-gray-500">→</span>
+                <span class="text-yellow-400 font-mono">4.38분 다운타임 허용</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLO 퍼센트별 허용 다운타임 테이블 -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-gray-800">
+                  <th class="px-4 py-2 text-left text-gray-400 font-medium">SLO</th>
+                  <th class="px-4 py-2 text-right text-gray-400 font-medium">월 다운타임</th>
+                  <th class="px-4 py-2 text-right text-gray-400 font-medium">연 다운타임</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-800">
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-4 py-2 text-gray-300">99%</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">7시간 18분</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">3.65일</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-4 py-2 text-gray-300">99.9%</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">43.8분</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">8.76시간</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-4 py-2 text-gray-300">99.95%</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">21.9분</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">4.38시간</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-4 py-2 text-gray-300">99.99%</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">4.38분</td>
+                  <td class="px-4 py-2 text-right text-yellow-400 font-mono">52.6분</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tip-box rounded-lg p-5">
+          <h4 class="font-semibold text-yellow-400 mb-2">Tip: SLO는 100%로 설정하면 안 됩니다</h4>
+          <p class="text-sm text-gray-400">
+            SLO를 100%로 설정하면 Error Budget이 0이 되어 <strong class="text-gray-300">어떤 변경도 할 수 없게</strong> 됩니다.
+            배포, 업데이트, 새로운 기능 출시 등 모든 변경에는 리스크가 따르기 때문입니다.
+            적절한 Error Budget을 남겨두어야 혁신과 안정성의 균형을 맞출 수 있습니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- Section 3: Four Golden Signals -->
+      <section id="section-3" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+            <span class="text-cyan-400 font-bold text-lg">3</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Four Golden Signals (Google SRE)</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          Google SRE에서 정의한 <strong class="text-gray-100">Four Golden Signals</strong>는 시스템 건강도를 파악하는 가장 중요한 4가지 지표입니다.
+          이 4가지만 제대로 모니터링해도 대부분의 장애를 빠르게 감지할 수 있습니다.
+        </p>
+
+        <!-- Latency -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-blue-400">1. Latency</span>
+            <span class="text-gray-500 text-base font-normal">응답 시간</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              요청을 처리하는 데 걸리는 시간입니다.
+              <strong class="text-gray-100">성공한 요청과 실패한 요청의 Latency를 분리하여 측정</strong>해야 합니다.
+              실패한 요청은 빨리 실패하기 때문에 Latency가 낮게 나올 수 있어 평균을 왜곡합니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">측정 방법</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-500 mt-0.5">•</span>
+                  p50, p95, p99 백분위수 (평균보다 중요)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-blue-500 mt-0.5">•</span>
+                  성공 요청 Latency vs 실패 요청 Latency 분리
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Traffic -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-emerald-400">2. Traffic</span>
+            <span class="text-gray-500 text-base font-normal">요청량</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              시스템에 걸리는 부하의 양입니다.
+              HTTP requests/sec, DB QPS(Queries Per Second), 네트워크 트래픽 등으로 측정합니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">측정 방법</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  HTTP 요청 수 / 초
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  데이터베이스 쿼리 수 / 초
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  네트워크 I/O (bytes/sec)
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Errors -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-rose-400">3. Errors</span>
+            <span class="text-gray-500 text-base font-normal">에러율</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              실패한 요청의 비율입니다.
+              HTTP 5xx 에러, 비즈니스 로직 에러, 타임아웃 등을 포함합니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">측정 방법</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-rose-500 mt-0.5">•</span>
+                  HTTP 5xx 응답 비율
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-rose-500 mt-0.5">•</span>
+                  타임아웃 비율
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-rose-500 mt-0.5">•</span>
+                  비즈니스 로직 에러 (예: 결제 실패)
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saturation -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-amber-400">4. Saturation</span>
+            <span class="text-gray-500 text-base font-normal">리소스 포화도</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              시스템 리소스가 얼마나 가득 찼는지를 나타냅니다.
+              CPU, Memory, Disk IO, Network 등의 사용률을 측정합니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">측정 방법</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-amber-500 mt-0.5">•</span>
+                  CPU 사용률 (%)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-amber-500 mt-0.5">•</span>
+                  메모리 사용률 (%)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-amber-500 mt-0.5">•</span>
+                  디스크 I/O 대기 시간
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-amber-500 mt-0.5">•</span>
+                  네트워크 대역폭 사용률
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 도구별 지표 매핑 테이블 -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-8">
+          <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+            <h4 class="font-semibold text-gray-200 text-sm">모니터링 도구별 Golden Signals 지표 매핑</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-950">
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">Signal</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">Datadog</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">CloudWatch</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">Prometheus</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-800">
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-blue-400 font-semibold">Latency</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">APM trace duration p99</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">API Gateway IntegrationLatency</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">histogram_quantile(0.99, ...)</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-emerald-400 font-semibold">Traffic</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">APM requests/sec</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">ALB RequestCount</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">rate(http_requests_total[5m])</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-rose-400 font-semibold">Errors</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">APM error rate, RUM JS errors</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">ALB HTTPCode_Target_5XX_Count</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">rate(http_requests_total{code=~"5.."}[5m])</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-amber-400 font-semibold">Saturation</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">System CPU/Memory usage</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">EC2 CPUUtilization, RDS FreeableMemory</td>
+                  <td class="px-5 py-3 text-gray-400 font-mono text-xs">node_cpu_seconds_total, node_memory_MemAvailable_bytes</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="info-box rounded-lg p-5">
+          <h4 class="font-semibold text-blue-400 mb-2">핵심 포인트</h4>
+          <p class="text-sm text-gray-300">
+            Four Golden Signals만 제대로 모니터링해도 대부분의 장애를 빠르게 감지할 수 있습니다.
+            다른 복잡한 지표들을 추가하기 전에, 먼저 이 4가지 지표를 완벽하게 설정하세요.
+          </p>
+        </div>
+      </section>
+
+      <!-- Section 4: 모니터링 도구 생태계 -->
+      <section id="section-4" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+            <span class="text-indigo-400 font-bold text-lg">4</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">모니터링 도구 생태계</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          실제 프로덕션 환경에서는 여러 모니터링 도구를 조합하여 사용합니다.
+          각 도구는 특정 레이어에 특화되어 있으며, 함께 사용할 때 최대의 효과를 발휘합니다.
+        </p>
+
+        <!-- Datadog -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-purple-400">Datadog</span>
+            <span class="text-gray-500 text-base font-normal">통합 모니터링 플랫폼</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              <strong class="text-gray-100">RUM</strong>(Real User Monitoring, 프론트엔드), <strong class="text-gray-100">APM</strong>(백엔드 트레이싱),
+              <strong class="text-gray-100">Logs</strong>(로그 수집), <strong class="text-gray-100">Infrastructure</strong>(서버 메트릭)를 모두 제공하는 올인원 플랫폼입니다.
+            </p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-purple-400 mb-3">강점</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-purple-500 mt-0.5">•</span>
+                    통합 대시보드로 전체 스택 가시성 확보
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-purple-500 mt-0.5">•</span>
+                    프론트엔드부터 백엔드까지 트레이스 연결
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-purple-500 mt-0.5">•</span>
+                    강력한 쿼리 언어와 알람 기능
+                  </li>
+                </ul>
+              </div>
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-gray-400 mb-3">약점</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    높은 비용 (트래픽 많을 시)
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    벤더 락인 위험
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AWS CloudWatch -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-orange-400">AWS CloudWatch</span>
+            <span class="text-gray-500 text-base font-normal">AWS 네이티브 모니터링</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              EC2, RDS, ALB, Lambda 등 모든 AWS 리소스의 메트릭을 수집하고 알람을 설정할 수 있습니다.
+              AWS 인프라를 사용한다면 기본으로 활용해야 하는 도구입니다.
+            </p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-orange-400 mb-3">강점</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-orange-500 mt-0.5">•</span>
+                    AWS 리소스와 긴밀한 통합
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-orange-500 mt-0.5">•</span>
+                    추가 설정 없이 기본 메트릭 수집
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-orange-500 mt-0.5">•</span>
+                    커스텀 메트릭 발행 가능
+                  </li>
+                </ul>
+              </div>
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-gray-400 mb-3">약점</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    쿼리 기능이 제한적
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    대시보드 UI가 투박함
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    프론트엔드 모니터링 불가
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prometheus + Grafana -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-red-400">Prometheus</span>
+            <span class="text-gray-500">+</span>
+            <span class="text-orange-400">Grafana</span>
+            <span class="text-gray-500 text-base font-normal">오픈소스 모니터링</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              <strong class="text-gray-100">Prometheus</strong>는 메트릭 수집 및 저장, <strong class="text-gray-100">Grafana</strong>는 시각화를 담당합니다.
+              Kubernetes 환경에서 사실상 표준으로 자리잡았습니다.
+            </p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-red-400 mb-3">강점</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">•</span>
+                    오픈소스 (비용 없음)
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">•</span>
+                    Kubernetes 클러스터 모니터링에 최적화
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">•</span>
+                    강력한 PromQL 쿼리 언어
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">•</span>
+                    Grafana로 유연한 대시보드 구성
+                  </li>
+                </ul>
+              </div>
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-gray-400 mb-3">약점</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    직접 설치/운영 필요
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    장기 저장소 구축 필요 (Thanos 등)
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-gray-600 mt-0.5">•</span>
+                    애플리케이션 레벨 트레이싱 제한적
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-layer 다이어그램 -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
+          <h3 class="text-lg font-bold text-gray-100 mb-4">모니터링 레이어 구조</h3>
+          <div class="bg-gray-950 rounded-lg p-6 font-mono text-sm text-gray-300 whitespace-pre overflow-x-auto">
+<span class="text-blue-400">[사용자]</span>
+   ↓
+<span class="text-purple-400">[프론트엔드: Datadog RUM]</span>
+   → 페이지 로딩 시간, JS 에러, Core Web Vitals
+   ↓
+<span class="text-emerald-400">[백엔드: Datadog APM]</span>
+   → API 응답시간, 에러율, 트레이스
+   ↓
+<span class="text-orange-400">[인프라: CloudWatch + Prometheus]</span>
+   → EC2/RDS CPU/Memory, K8s Pod 리소스</div>
+        </div>
+
+        <!-- 도구 비교 테이블 -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-8">
+          <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+            <h4 class="font-semibold text-gray-200 text-sm">도구별 강점/약점 비교</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-950">
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">도구</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">대상 레이어</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">주요 강점</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">주요 약점</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-800">
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-purple-400 font-semibold">Datadog</td>
+                  <td class="px-5 py-3 text-gray-400">전체 스택</td>
+                  <td class="px-5 py-3 text-gray-300">올인원, 강력한 쿼리</td>
+                  <td class="px-5 py-3 text-gray-500">높은 비용</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-orange-400 font-semibold">CloudWatch</td>
+                  <td class="px-5 py-3 text-gray-400">AWS 인프라</td>
+                  <td class="px-5 py-3 text-gray-300">AWS 긴밀 통합</td>
+                  <td class="px-5 py-3 text-gray-500">제한적 쿼리, 투박한 UI</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-red-400 font-semibold">Prometheus + Grafana</td>
+                  <td class="px-5 py-3 text-gray-400">K8s 클러스터</td>
+                  <td class="px-5 py-3 text-gray-300">오픈소스, K8s 최적화</td>
+                  <td class="px-5 py-3 text-gray-500">직접 운영 필요</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tip-box rounded-lg p-5">
+          <h4 class="font-semibold text-yellow-400 mb-2">Tip: 하나의 도구로 모든 것을 해결하려 하지 마세요</h4>
+          <p class="text-sm text-gray-400">
+            각 레이어에 적합한 도구를 선택하는 것이 핵심입니다.
+            예를 들어 프론트엔드는 Datadog RUM, 백엔드는 Datadog APM, 인프라는 CloudWatch와 Prometheus를 조합하여 사용할 수 있습니다.
+            도구를 추가할 때는 "이 도구가 해결하는 문제가 무엇인가?"를 먼저 명확히 하세요.
+          </p>
+        </div>
+      </section>
+
+      <!-- Quiz Section -->
+      <section id="quiz" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">퀴즈</h2>
+        </div>
+
+        <p class="text-gray-400 text-sm mb-6">
+          학습한 내용을 확인해봅시다. 5문제를 모두 풀어보세요.
+        </p>
+
+        <div id="quiz-container">
+          <!-- Quiz questions will be rendered here by QuizEngine -->
+        </div>
+      </section>
+
+      <!-- Bottom Navigation -->
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <!-- Complete Button -->
+        <div class="flex justify-center mb-8">
+          <button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950">
+            학습 완료
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between">
+          <a href="0-metrics-foundations.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Module 0: 지표의 기초
+          </a>
+          <a href="2-datadog-rum.html" class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+            Module 2: Datadog RUM
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="../js/progress.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    // ===== Quiz Initialization =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const questions = [
+        {
+          type: 'choice',
+          question: 'MTTD(Mean Time To Detect)의 정의로 올바른 것은?',
+          options: ['장애 발생부터 인지까지의 평균 시간', '장애 인지부터 복구까지의 평균 시간', '서비스 배포부터 장애까지의 평균 시간', '장애 발생부터 복구까지의 총 시간'],
+          answer: 0,
+          explanation: 'MTTD는 Mean Time To Detect로, 장애가 발생한 시점부터 팀이 장애를 인지하는 시점까지의 평균 시간입니다. 인지 후 복구까지는 MTTR(Mean Time To Resolve)입니다.'
+        },
+        {
+          type: 'choice',
+          question: 'SLO를 99.9%로 설정했을 때, 한 달(30일) 동안 허용되는 다운타임은?',
+          options: ['약 4.38분', '약 43.8분', '약 7.3시간', '약 8.76시간'],
+          answer: 1,
+          explanation: '30일 = 43,200분. 0.1% = 43,200 × 0.001 = 43.2분 (약 43.8분). 이것이 Error Budget입니다.'
+        },
+        {
+          type: 'choice',
+          question: 'Four Golden Signals 중 "시스템 리소스가 얼마나 가득 찼는지"를 나타내는 것은?',
+          options: ['Latency', 'Traffic', 'Errors', 'Saturation'],
+          answer: 3,
+          explanation: 'Saturation은 리소스의 사용률/포화도를 나타냅니다. CPU, Memory, Disk IO 등이 얼마나 가득 찼는지 측정합니다.'
+        },
+        {
+          type: 'choice',
+          question: 'SLI, SLO, SLA의 관계로 올바른 것은?',
+          options: ['SLA가 가장 느슨하고 SLI가 가장 엄격하다', 'SLI는 측정값, SLO는 목표값, SLA는 계약이다', 'SLO는 항상 100%로 설정해야 한다', 'SLA는 내부 팀용이고 SLO는 고객용이다'],
+          answer: 1,
+          explanation: 'SLI는 실제 측정되는 지표값, SLO는 그 지표의 목표값, SLA는 고객과 맺는 공식 계약입니다. SLO를 100%로 설정하면 Error Budget이 0이 되어 어떤 변경도 할 수 없게 됩니다.'
+        },
+        {
+          type: 'short',
+          question: 'Google SRE에서 정의한 Four Golden Signals 중 "요청 처리 시간"을 나타내는 Signal의 이름은? (영어)',
+          answer: 'Latency',
+          explanation: 'Latency는 요청을 처리하는 데 걸리는 시간입니다. 성공한 요청과 실패한 요청의 Latency를 분리하여 측정하는 것이 중요합니다.'
+        }
+      ];
+
+      if (typeof QuizEngine !== 'undefined') {
+        QuizEngine.init('quiz-container', questions, 'module1');
+      }
+
+      // Update completion button state
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module1')) {
+        markButtonComplete();
+      }
+
+      // Initialize sidebar active states
+      initSidebar();
+    });
+
+    // ===== Complete Button Handler =====
+    function handleComplete() {
+      if (typeof ProgressTracker !== 'undefined') {
+        ProgressTracker.markComplete('module1');
+      }
+      markButtonComplete();
+    }
+
+    function markButtonComplete() {
+      var btn = document.getElementById('complete-btn');
+      if (btn) {
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'completed');
+        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>학습 완료됨';
+      }
+    }
+
+    // ===== Sidebar Navigation =====
+    function initSidebar() {
+      var sections = document.querySelectorAll('section[id]');
+      var sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+      // Intersection observer for active section tracking
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            sidebarLinks.forEach(function(link) {
+              link.classList.remove('active');
+              if (link.getAttribute('data-section') === id) {
+                link.classList.add('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-20% 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+
+      // Sidebar link click -> close mobile sidebar
+      sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var sidebar = document.getElementById('sidebar');
+          if (window.innerWidth < 1024) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    // ===== Progress Tracking =====
+    function updateProgress() {
+      var totalSections = 5;
+      var completed = 0;
+      for (var i = 1; i <= 4; i++) {
+        var check = document.getElementById('check-section-' + i);
+        if (check && check.classList.contains('done')) completed++;
+      }
+      var quizCheck = document.getElementById('check-quiz');
+      if (quizCheck && quizCheck.classList.contains('done')) completed++;
+
+      var percent = Math.round((completed / totalSections) * 100);
+      var bar = document.getElementById('progress-bar');
+      var percentText = document.getElementById('progress-percent');
+      if (bar) bar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+    }
+  </script>
+</body>
+</html>

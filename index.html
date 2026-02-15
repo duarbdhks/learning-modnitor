@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Incident Analysis</title>
+  <meta name="description" content="장애 원인을 데이터로 추적하는 백엔드 개발자 되기 - 서비스 장애 분석 학습 플랫폼">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/auth.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+
+  <!-- Hero Section -->
+  <header class="hero-gradient relative overflow-hidden">
+    <div class="max-w-5xl mx-auto px-6 pt-16 pb-12 text-center">
+      <div class="mb-4">
+        <span class="inline-block px-3 py-1 text-xs font-semibold tracking-wider uppercase rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          Service Reliability Course
+        </span>
+      </div>
+      <h1 class="hero-title text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
+        Service Incident Analysis
+      </h1>
+      <p class="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+        장애 원인을 데이터로 추적하는 백엔드 개발자 되기
+      </p>
+
+      <!-- Overall Progress -->
+      <div class="max-w-md mx-auto">
+        <div class="flex items-center justify-between text-sm mb-2">
+          <span class="text-gray-400 font-medium">전체 진도</span>
+          <span id="progress-percent" class="text-indigo-400 font-bold">0%</span>
+        </div>
+        <div class="progress-bar-track">
+          <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <p id="progress-detail" class="text-xs text-gray-500 mt-2">0 / 7 모듈 완료</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Module Cards -->
+  <main class="max-w-5xl mx-auto px-6 py-12">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+      <!-- Module 0 -->
+      <a href="modules/0-metrics-foundations.html" id="card-module0" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">0</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">지표의 기초</h2>
+            <p class="text-sm text-gray-400 mt-1">좋은 지표의 조건, RED/USE, 비즈니스↔기술 연결</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module0" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module0" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 1 -->
+      <a href="modules/1-reliability-fundamentals.html" id="card-module1" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">1</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">서비스 신뢰성 지표 기본</h2>
+            <p class="text-sm text-gray-400 mt-1">SLI/SLO, Golden Signals, 모니터링 생태계</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module1" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module1" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 2 -->
+      <a href="modules/2-datadog-rum.html" id="card-module2" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">2</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">Datadog RUM &amp; 프론트엔드 지표</h2>
+            <p class="text-sm text-gray-400 mt-1">p99 레이턴시, Core Web Vitals, 에러 추적</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module2" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module2" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 3 -->
+      <a href="modules/3-aws-rds-metrics.html" id="card-module3" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">3</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">AWS RDS 메트릭 분석</h2>
+            <p class="text-sm text-gray-400 mt-1">CPU, Connections, IOPS, Replication Lag</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module3" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module3" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 4 -->
+      <a href="modules/4-kubernetes-monitoring.html" id="card-module4" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">4</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">Kubernetes 리소스 모니터링</h2>
+            <p class="text-sm text-gray-400 mt-1">Pod/Node 리소스, OOMKill, HPA</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module4" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module4" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 5 -->
+      <a href="modules/5-incident-analysis.html" id="card-module5" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">5</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">장애 원인 분석 통합 프레임워크</h2>
+            <p class="text-sm text-gray-400 mt-1">타임라인, 상관 분석, Runbook, Post-mortem</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module5" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module5" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 6 -->
+      <a href="modules/6-dashboard-design.html" id="card-module6" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">6</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">모니터링 대시보드 설계</h2>
+            <p class="text-sm text-gray-400 mt-1">3계층 피라미드, 알림 설계, 도구별 실전 구축</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module6" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module6" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Reset -->
+    <div class="text-center mt-12">
+      <button onclick="resetProgress()" class="reset-btn">
+        진도 초기화
+      </button>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 mt-8">
+    <div class="max-w-5xl mx-auto px-6 py-8 text-center text-sm text-gray-500">
+      <p>Service Incident Analysis &mdash; 서비스 장애 분석 학습 플랫폼</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/progress.js"></script>
+  <script src="js/quiz.js"></script>
+  <script>
+    function updateDashboard() {
+      const progress = ProgressTracker.getProgress();
+      const overall = ProgressTracker.getOverallProgress();
+      const completedCount = Object.values(progress).filter(v => v).length;
+
+      // Update overall progress bar
+      document.getElementById('progress-percent').textContent = overall + '%';
+      document.getElementById('progress-fill').style.width = overall + '%';
+      document.getElementById('progress-detail').textContent = completedCount + ' / ' + ProgressTracker.TOTAL_MODULES + ' 모듈 완료';
+
+      // Update each module card
+      for (let i = 0; i <= 6; i++) {
+        const moduleId = 'module' + i;
+        const card = document.getElementById('card-' + moduleId);
+        const badge = document.getElementById('badge-' + moduleId);
+        const quizBadge = document.getElementById('quiz-' + moduleId);
+
+        if (progress[moduleId]) {
+          card.classList.add('completed');
+          badge.className = 'completion-badge badge-complete';
+          badge.innerHTML = '<span class="completion-checkmark">&#10003;</span> 완료';
+        } else {
+          card.classList.remove('completed');
+          badge.className = 'completion-badge badge-incomplete';
+          badge.textContent = '미완료';
+        }
+
+        // Quiz score
+        const quizScore = ProgressTracker.getQuizScore(moduleId);
+        if (quizScore) {
+          quizBadge.classList.remove('hidden');
+          quizBadge.textContent = 'Quiz ' + quizScore.score + '/' + quizScore.total;
+        } else {
+          quizBadge.classList.add('hidden');
+        }
+      }
+    }
+
+    function resetProgress() {
+      if (confirm('모든 학습 진도와 퀴즈 결과가 초기화됩니다. 계속하시겠습니까?')) {
+        ProgressTracker.reset();
+        updateDashboard();
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', updateDashboard);
+  </script>
+</body>
+</html>

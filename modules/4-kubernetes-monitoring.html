@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 4: Kubernetes 리소스 모니터링 | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/auth.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+              900: '#111118',
+              850: '#16161f',
+              800: '#1e1e2a',
+              700: '#2a2a3a',
+              600: '#3a3a4d',
+              400: '#8888a0',
+              300: '#a0a0b8',
+              200: '#c0c0d0',
+              100: '#e0e0ea',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .info-box { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .tip-box { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.08); }
+    .warning-box { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .success-box { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.08); }
+    .sidebar-link.active { color: #60a5fa; border-left-color: #3b82f6; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { color: #93c5fd; border-left-color: #60a5fa; }
+    .erd-diagram { font-family: 'Courier New', monospace; line-height: 1.6; font-size: 0.85rem; }
+    pre[class*="language-"] { border-radius: 0.5rem; margin: 1rem 0; }
+    .quiz-option { transition: all 0.2s; }
+    .quiz-option:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+    .quiz-option.correct { background: rgba(34, 197, 94, 0.15); border-color: #22c55e; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; }
+    .comparison-card { transition: transform 0.2s; }
+    .comparison-card:hover { transform: translateY(-2px); }
+    @media (max-width: 1023px) {
+      .sidebar-toggle-target { display: none; }
+      .sidebar-toggle-target.open { display: block; }
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          홈으로
+        </a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div>
+          <span class="text-blue-400 text-xs font-semibold tracking-wider uppercase">Module 4</span>
+          <h1 class="text-lg sm:text-xl font-bold text-gray-100">Kubernetes 리소스 모니터링</h1>
+        </div>
+      </div>
+      <!-- Mobile sidebar toggle -->
+      <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+
+    <!-- Sidebar TOC -->
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">목차</h3>
+        <ul class="space-y-1">
+          <li>
+            <a href="#section-1" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-1">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-1"></span>
+              K8s 리소스 모델
+            </a>
+          </li>
+          <li>
+            <a href="#section-2" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-2">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-2"></span>
+              Pod 레벨 지표
+            </a>
+          </li>
+          <li>
+            <a href="#section-3" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-3">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-3"></span>
+              Node 레벨 지표
+            </a>
+          </li>
+          <li>
+            <a href="#section-4" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-4">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-4"></span>
+              HPA 동작 이해
+            </a>
+          </li>
+          <li>
+            <a href="#section-5" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-5">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-5"></span>
+              모니터링 도구
+            </a>
+          </li>
+          <li>
+            <a href="#section-6" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-6">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-6"></span>
+              실전: K8s 리소스 진단
+            </a>
+          </li>
+          <li>
+            <a href="#quiz" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="quiz">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-quiz"></span>
+              퀴즈
+            </a>
+          </li>
+        </ul>
+        <!-- Progress indicator -->
+        <div class="mt-6 pt-4 border-t border-gray-800">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>진행률</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="w-full bg-gray-800 rounded-full h-1.5">
+            <div id="progress-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0">
+
+      <!-- Section 1: K8s 리소스 모델 이해 -->
+      <section id="section-1" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <span class="text-blue-400 font-bold text-lg">1</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">K8s 리소스 모델 이해</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            Kubernetes에서 컨테이너 리소스를 이해하는 것은 안정적인 서비스 운영의 핵심입니다.
+            <strong class="text-blue-400">requests</strong>와 <strong class="text-red-400">limits</strong>를 올바르게 설정하지 않으면 예상치 못한 장애가 발생할 수 있습니다.
+          </p>
+
+          <!-- requests vs limits -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">requests vs limits</h3>
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+              <div class="comparison-card bg-gray-950 border border-blue-900/50 rounded-xl p-5">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <h4 class="font-semibold text-blue-400">requests</h4>
+                </div>
+                <p class="text-sm text-gray-400 mb-3">컨테이너가 <strong class="text-gray-300">보장받는 최소 리소스</strong>. 스케줄러는 이 값을 기준으로 Pod을 배치합니다.</p>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li>&#8226; 스케줄링 기준</li>
+                  <li>&#8226; 최소 보장 리소스</li>
+                  <li>&#8226; QoS Class 결정 요소</li>
+                </ul>
+              </div>
+              <div class="comparison-card bg-gray-950 border border-red-900/50 rounded-xl p-5">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                  <h4 class="font-semibold text-red-400">limits</h4>
+                </div>
+                <p class="text-sm text-gray-400 mb-3">컨테이너가 <strong class="text-gray-300">사용할 수 있는 최대 리소스</strong>. 초과 시 제한당합니다.</p>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li>&#8226; CPU 초과 시: throttling</li>
+                  <li>&#8226; Memory 초과 시: OOMKilled</li>
+                  <li>&#8226; 리소스 격리 보장</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="bg-gray-950 rounded-lg p-4">
+              <p class="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider">YAML 예시</p>
+              <pre class="text-sm overflow-x-auto"><code class="language-yaml">resources:
+  requests:
+    cpu: "250m"      # 0.25 vCPU
+    memory: "256Mi"  # 256 MiB
+  limits:
+    cpu: "500m"      # 0.5 vCPU
+    memory: "512Mi"  # 512 MiB</code></pre>
+            </div>
+          </div>
+
+          <!-- QoS Class 비교 테이블 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+              <h4 class="font-semibold text-gray-200 text-sm">QoS Class 비교</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">QoS Class</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">조건</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">Eviction 우선순위</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">적합한 워크로드</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-emerald-400 font-medium">Guaranteed</td>
+                    <td class="px-5 py-3 text-gray-300">requests = limits (모든 컨테이너)</td>
+                    <td class="px-5 py-3 text-gray-400">가장 낮음 (마지막에 퇴거)</td>
+                    <td class="px-5 py-3 text-gray-400">프로덕션 핵심 서비스</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-yellow-400 font-medium">Burstable</td>
+                    <td class="px-5 py-3 text-gray-300">requests &lt; limits</td>
+                    <td class="px-5 py-3 text-gray-400">중간</td>
+                    <td class="px-5 py-3 text-gray-400">일반 서비스</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-red-400 font-medium">BestEffort</td>
+                    <td class="px-5 py-3 text-gray-300">requests/limits 미설정</td>
+                    <td class="px-5 py-3 text-gray-400">가장 높음 (먼저 퇴거)</td>
+                    <td class="px-5 py-3 text-gray-400">배치, 테스트</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="warning-box rounded-lg p-5">
+            <p class="text-sm text-gray-300">
+              <strong class="text-red-400">중요:</strong>
+              프로덕션 서비스에는 반드시 requests와 limits를 설정하세요. BestEffort Pod는 노드 압박 시 가장 먼저 퇴거됩니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Pod 레벨 지표 -->
+      <section id="section-2" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <span class="text-purple-400 font-bold text-lg">2</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Pod 레벨 지표</h2>
+        </div>
+
+        <div class="space-y-8 text-gray-300 leading-relaxed">
+          <!-- CPU 지표 -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+              <span class="text-cyan-400">CPU 지표</span>
+            </h3>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+              <h4 class="font-semibold text-gray-200 mb-3">핵심 메트릭</h4>
+              <ul class="space-y-3 text-sm">
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-400 mt-0.5">&#8250;</span>
+                  <div>
+                    <code class="text-cyan-400 bg-gray-950 px-2 py-0.5 rounded text-xs">container_cpu_usage_seconds_total</code>
+                    <p class="text-gray-400 mt-1">실제 CPU 사용량 (누적값)</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-400 mt-0.5">&#8250;</span>
+                  <div>
+                    <p class="text-gray-300"><strong>CPU Throttling:</strong> limits에 도달하면 Linux CFS가 CPU 사용을 제한</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-400 mt-0.5">&#8250;</span>
+                  <div>
+                    <p class="text-gray-300"><strong>CPU 사용률:</strong> 실제 사용 / requests × 100%</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="bg-gray-950 rounded-lg p-4 mb-4">
+              <p class="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider">PromQL 예시</p>
+              <pre class="text-sm overflow-x-auto"><code class="language-bash">rate(container_cpu_usage_seconds_total{pod="myapp-xxx"}[5m])</code></pre>
+            </div>
+
+            <div class="warning-box rounded-lg p-4">
+              <p class="text-sm text-gray-300">
+                <strong class="text-red-400">주의:</strong>
+                CPU throttling은 limits에 의해 발생합니다. 응답 지연의 숨은 원인인 경우가 많습니다.
+              </p>
+            </div>
+          </div>
+
+          <!-- Memory 지표 -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+              <span class="text-orange-400">Memory 지표</span>
+            </h3>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+              <h4 class="font-semibold text-gray-200 mb-3">핵심 메트릭</h4>
+              <ul class="space-y-3 text-sm">
+                <li class="flex items-start gap-2">
+                  <span class="text-orange-400 mt-0.5">&#8250;</span>
+                  <div>
+                    <code class="text-orange-400 bg-gray-950 px-2 py-0.5 rounded text-xs">container_memory_working_set_bytes</code>
+                    <p class="text-gray-400 mt-1">실제 사용 중인 메모리 (캐시 제외)</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-orange-400 mt-0.5">&#8250;</span>
+                  <div>
+                    <code class="text-orange-400 bg-gray-950 px-2 py-0.5 rounded text-xs">container_memory_rss</code>
+                    <p class="text-gray-400 mt-1">RSS (Resident Set Size)</p>
+                  </div>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-orange-400 mt-0.5">&#8250;</span>
+                  <div>
+                    <p class="text-gray-300"><strong>OOMKilled:</strong> memory limits 초과 시 커널이 프로세스를 강제 종료</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- OOMKilled 원인과 대응 -->
+          <div class="bg-gray-900 border border-red-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-red-400 mb-4">OOMKilled 원인과 대응</h3>
+
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <h4 class="font-semibold text-gray-200 mb-2 text-sm">증상</h4>
+                <ul class="space-y-1 text-sm text-gray-400">
+                  <li>&#8226; Pod Status = OOMKilled</li>
+                  <li>&#8226; CrashLoopBackOff</li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-semibold text-gray-200 mb-2 text-sm">확인 방법</h4>
+                <code class="text-xs bg-gray-950 px-2 py-1 rounded text-cyan-400">kubectl describe pod &lt;name&gt;</code>
+                <p class="text-xs text-gray-500 mt-1">Last State: Terminated, Reason: OOMKilled</p>
+              </div>
+            </div>
+
+            <h4 class="font-semibold text-gray-200 mb-2 text-sm">원인</h4>
+            <ul class="space-y-1 text-sm text-gray-400 mb-4">
+              <li>&#8226; memory limits가 실제 필요량보다 낮음</li>
+              <li>&#8226; 메모리 누수 (Memory Leak)</li>
+              <li>&#8226; 대량 데이터 처리</li>
+            </ul>
+
+            <h4 class="font-semibold text-gray-200 mb-2 text-sm">대응 순서</h4>
+            <ol class="space-y-2 text-sm text-gray-400">
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">1)</span>
+                limits 상향 조정
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">2)</span>
+                메모리 프로파일링
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">3)</span>
+                코드 수정
+              </li>
+            </ol>
+          </div>
+
+          <!-- OOMKilled 디버깅 플로우차트 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">OOMKilled 디버깅 플로우차트</h4>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <pre class="text-sm text-gray-300 whitespace-pre">Pod OOMKilled 발생
+  │
+  ├─ 반복 발생? ──Yes──▶ 메모리 누수 의심
+  │                      → 힙 덤프 분석
+  │                      → 프로파일러 적용
+  │
+  └─ 처음 발생? ──Yes──▶ 일시적 부하?
+                         ├─Yes─▶ limits 상향 (20-30%)
+                         └─No──▶ 데이터 크기 확인
+                                 → batch size 조정</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Node 레벨 지표 -->
+      <section id="section-3" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+            <span class="text-cyan-400 font-bold text-lg">3</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Node 레벨 지표</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <!-- Node Conditions -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+              <h4 class="font-semibold text-gray-200 text-sm">Node Conditions</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">Condition</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">의미</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">트리거</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-red-400 font-medium">MemoryPressure</td>
+                    <td class="px-5 py-3 text-gray-300">노드 메모리 부족</td>
+                    <td class="px-5 py-3 text-gray-400">available memory &lt; threshold</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-orange-400 font-medium">DiskPressure</td>
+                    <td class="px-5 py-3 text-gray-300">노드 디스크 부족</td>
+                    <td class="px-5 py-3 text-gray-400">available disk &lt; 15%</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-yellow-400 font-medium">PIDPressure</td>
+                    <td class="px-5 py-3 text-gray-300">프로세스 수 한계</td>
+                    <td class="px-5 py-3 text-gray-400">PID 수 &gt; threshold</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-emerald-400 font-medium">Ready</td>
+                    <td class="px-5 py-3 text-gray-300">노드 정상 동작</td>
+                    <td class="px-5 py-3 text-gray-400">kubelet 정상</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Node Pressure 발생 시 동작 -->
+          <div class="bg-gray-900 border border-red-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-red-400 mb-3">Node Pressure 발생 시 동작</h3>
+            <ol class="space-y-2 text-sm">
+              <li class="flex items-start gap-2">
+                <span class="text-red-400 font-bold">1.</span>
+                <span class="text-gray-300">kubelet이 QoS 순서대로 Pod 퇴거(Eviction) 시작</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-red-400 font-bold">2.</span>
+                <span class="text-gray-300">BestEffort → Burstable → Guaranteed 순서</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-red-400 font-bold">3.</span>
+                <span class="text-gray-300">새 Pod 스케줄링 거부</span>
+              </li>
+            </ol>
+          </div>
+
+          <!-- Allocatable 리소스 -->
+          <div>
+            <h3 class="text-lg font-bold text-gray-100 mb-4">Allocatable 리소스</h3>
+            <p class="text-sm text-gray-400 mb-4">
+              Node 전체 리소스 ≠ Pod가 사용 가능한 리소스<br>
+              <strong class="text-gray-300">Allocatable = Capacity - System Reserved - Kube Reserved</strong>
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h4 class="font-semibold text-gray-200 mb-3 text-sm">kubectl describe node 출력 예시</h4>
+              <div class="bg-gray-950 rounded-lg p-4">
+                <pre class="text-sm text-gray-300"><code class="language-bash">Capacity:
+  cpu:    4
+  memory: 16Gi
+Allocatable:
+  cpu:    3920m
+  memory: 14.5Gi</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="tip-box rounded-lg p-5">
+            <p class="text-sm text-gray-300">
+              <strong class="text-yellow-400">Tip:</strong>
+              kubectl describe node로 Allocatable 리소스를 확인하세요. Capacity와 차이가 클 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: HPA 동작 이해 -->
+      <section id="section-4" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <span class="text-emerald-400 font-bold text-lg">4</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">HPA 동작 이해</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <!-- HPA 기본 원리 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-3">HPA(Horizontal Pod Autoscaler) 기본 원리</h3>
+            <div class="bg-emerald-950/30 border border-emerald-900/50 rounded-lg p-4 mb-4">
+              <p class="text-center text-lg font-mono text-emerald-300">
+                (현재 메트릭 / 목표 메트릭) × 현재 Replica 수 = 필요 Replica 수
+              </p>
+            </div>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <p class="text-sm text-gray-400 mb-2"><strong class="text-gray-300">예시:</strong></p>
+              <p class="text-sm text-gray-300">CPU 사용률 80%, 목표 50%, 현재 3개 → 80/50 × 3 = 4.8 → <strong class="text-emerald-400">5개</strong></p>
+            </div>
+          </div>
+
+          <!-- HPA YAML 예시 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">HPA YAML 예시</h4>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <pre class="text-sm overflow-x-auto"><code class="language-yaml">apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+spec:
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300</code></pre>
+            </div>
+          </div>
+
+          <!-- HPA 스케일아웃해도 지연이 줄지 않는 경우 -->
+          <div class="bg-gray-900 border border-yellow-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-yellow-400 mb-4">HPA가 스케일아웃해도 지연이 줄지 않는 경우</h3>
+
+            <div class="space-y-4">
+              <div class="flex items-start gap-3">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-900 flex items-center justify-center text-xs text-yellow-400 mt-0.5">1</span>
+                <div>
+                  <p class="text-gray-300 text-sm"><strong>원인:</strong> Pod 시작 시간이 길다 (Cold Start)</p>
+                  <p class="text-xs text-gray-500 mt-1">→ readinessProbe 확인</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-900 flex items-center justify-center text-xs text-yellow-400 mt-0.5">2</span>
+                <div>
+                  <p class="text-gray-300 text-sm"><strong>원인:</strong> 병목이 Pod 수가 아니라 DB/외부 서비스</p>
+                  <p class="text-xs text-gray-500 mt-1">→ 백엔드 메트릭 확인</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-900 flex items-center justify-center text-xs text-yellow-400 mt-0.5">3</span>
+                <div>
+                  <p class="text-gray-300 text-sm"><strong>원인:</strong> maxReplicas에 도달</p>
+                  <p class="text-xs text-gray-500 mt-1">→ 더 이상 스케일 불가</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-900 flex items-center justify-center text-xs text-yellow-400 mt-0.5">4</span>
+                <div>
+                  <p class="text-gray-300 text-sm"><strong>원인:</strong> Node 리소스 부족으로 Pending</p>
+                  <p class="text-xs text-gray-500 mt-1">→ Cluster Autoscaler 필요</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-box rounded-lg p-5">
+            <p class="text-sm text-gray-300">
+              <strong class="text-blue-400">핵심:</strong>
+              HPA는 문제를 감추는 것이 아니라 시간을 벌어주는 것입니다. 근본 원인은 따로 찾아야 합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: 핵심 모니터링 도구 -->
+      <section id="section-5" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+            <span class="text-indigo-400 font-bold text-lg">5</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">핵심 모니터링 도구</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <!-- 도구별 역할 테이블 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+              <h4 class="font-semibold text-gray-200 text-sm">도구별 역할</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">도구</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">역할</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">주요 메트릭</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-cyan-400 font-medium">kubectl top</td>
+                    <td class="px-5 py-3 text-gray-300">실시간 Pod/Node 리소스</td>
+                    <td class="px-5 py-3 text-gray-400">CPU, Memory (순간값)</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-cyan-400 font-medium">metrics-server</td>
+                    <td class="px-5 py-3 text-gray-300">클러스터 메트릭 API</td>
+                    <td class="px-5 py-3 text-gray-400">kubectl top의 데이터 소스</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-cyan-400 font-medium">kube-state-metrics</td>
+                    <td class="px-5 py-3 text-gray-300">K8s 오브젝트 상태</td>
+                    <td class="px-5 py-3 text-gray-400">Pod status, Deployment replicas, HPA</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-cyan-400 font-medium">Prometheus + Grafana</td>
+                    <td class="px-5 py-3 text-gray-300">시계열 수집 + 시각화</td>
+                    <td class="px-5 py-3 text-gray-400">모든 메트릭 (장기 보관)</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-cyan-400 font-medium">Datadog K8s Integration</td>
+                    <td class="px-5 py-3 text-gray-300">통합 모니터링</td>
+                    <td class="px-5 py-3 text-gray-400">위 전체 + APM/RUM 연동</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- kubectl 명령어 모음 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">kubectl 명령어 모음</h4>
+            <div class="space-y-3">
+              <div>
+                <p class="text-xs text-gray-500 mb-1"># Pod CPU/Memory 사용량 (실시간)</p>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <code class="text-sm text-cyan-400">kubectl top pods -n production</code>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 mb-1"># Node 리소스 사용량</p>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <code class="text-sm text-cyan-400">kubectl top nodes</code>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 mb-1"># Pod 상세 (이벤트, 상태)</p>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <code class="text-sm text-cyan-400">kubectl describe pod myapp-abc123 -n production</code>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 mb-1"># 최근 이벤트 (OOMKill, Eviction 등)</p>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <code class="text-sm text-cyan-400">kubectl get events -n production --sort-by='.lastTimestamp' | tail -20</code>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 mb-1"># HPA 상태 확인</p>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <code class="text-sm text-cyan-400">kubectl get hpa -n production</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6: 실전 - K8s 리소스 진단 워크스루 -->
+      <section id="section-6" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center">
+            <span class="text-rose-400 font-bold text-lg">6</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">실전: 서비스 지연 → K8s 리소스 진단 워크스루</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p class="text-lg font-semibold text-gray-100">시나리오: API 응답 시간 증가 알림 수신</p>
+
+          <!-- Step-by-step -->
+          <div class="space-y-4">
+            <!-- Step 1 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center text-blue-400 font-bold flex-shrink-0">1</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6">
+                <h4 class="font-semibold text-blue-400 mb-2">kubectl top pods로 리소스 확인</h4>
+                <div class="bg-gray-950 rounded-lg p-3 mb-2">
+                  <code class="text-sm text-cyan-400">kubectl top pods -n production</code>
+                </div>
+                <div class="bg-gray-900 rounded-lg p-3">
+                  <p class="text-sm text-gray-300"><strong>결과:</strong> myapp 파드 CPU 490m/500m (98%)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">2</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6">
+                <h4 class="font-semibold text-purple-400 mb-2">CPU throttling 확인 (PromQL)</h4>
+                <div class="bg-gray-950 rounded-lg p-3 mb-2">
+                  <code class="text-sm text-cyan-400">rate(container_cpu_cfs_throttled_seconds_total[5m]) > 0</code>
+                </div>
+                <div class="bg-gray-900 rounded-lg p-3">
+                  <p class="text-sm text-gray-300"><strong>결과:</strong> throttling 발생 중</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-cyan-500/20 border-2 border-cyan-500 flex items-center justify-center text-cyan-400 font-bold flex-shrink-0">3</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6">
+                <h4 class="font-semibold text-cyan-400 mb-2">Pod의 resources 확인</h4>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <pre class="text-sm text-gray-300"><code class="language-yaml">resources:
+  requests:
+    cpu: "250m"
+  limits:
+    cpu: "500m"</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 font-bold flex-shrink-0">4</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6">
+                <h4 class="font-semibold text-emerald-400 mb-2">limits을 1000m으로 상향 조정</h4>
+                <div class="bg-gray-900 rounded-lg p-3">
+                  <p class="text-sm text-gray-300"><strong>결과:</strong> CPU throttling 해소</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-yellow-500/20 border-2 border-yellow-500 flex items-center justify-center text-yellow-400 font-bold flex-shrink-0">5</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6">
+                <h4 class="font-semibold text-yellow-400 mb-2">HPA 확인</h4>
+                <div class="bg-gray-950 rounded-lg p-3 mb-2">
+                  <code class="text-sm text-cyan-400">kubectl get hpa</code>
+                </div>
+                <div class="bg-gray-900 rounded-lg p-3">
+                  <p class="text-sm text-gray-300"><strong>결과:</strong> 현재 8/10 replicas (maxReplicas 근접)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-orange-500/20 border-2 border-orange-500 flex items-center justify-center text-orange-400 font-bold flex-shrink-0">6</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6">
+                <h4 class="font-semibold text-orange-400 mb-2">maxReplicas 상향 + Cluster Autoscaler 확인</h4>
+                <div class="bg-gray-900 rounded-lg p-3">
+                  <p class="text-sm text-gray-300">maxReplicas를 15로 상향</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 7 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center text-rose-400 font-bold flex-shrink-0">7</div>
+              </div>
+              <div>
+                <h4 class="font-semibold text-rose-400 mb-2">근본 원인 조사</h4>
+                <div class="bg-gray-900 rounded-lg p-3">
+                  <p class="text-sm text-gray-300">특정 API의 처리 시간 증가 → <strong class="text-rose-400">코드 최적화 필요</strong></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="success-box rounded-lg p-5">
+            <p class="text-sm text-gray-300">
+              <strong class="text-emerald-400">핵심 플로우:</strong>
+              kubectl top → describe → PromQL 순서로 점진적으로 깊이 있는 진단을 수행하세요.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quiz Section -->
+      <section id="quiz" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">퀴즈</h2>
+        </div>
+
+        <p class="text-gray-400 text-sm mb-6">
+          학습한 내용을 확인해봅시다. 5문제를 모두 풀어보세요.
+        </p>
+
+        <div id="quiz-container">
+          <!-- Quiz questions will be rendered here by QuizEngine -->
+        </div>
+      </section>
+
+      <!-- Bottom Navigation -->
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <!-- Complete Button -->
+        <div class="flex justify-center mb-8">
+          <button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950">
+            학습 완료
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between">
+          <a href="3-aws-rds-metrics.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Module 3: AWS RDS
+          </a>
+          <a href="5-incident-analysis.html" class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+            Module 5: 장애 분석
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="../js/progress.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    // ===== Quiz Initialization =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const questions = [
+        {
+          type: 'choice',
+          question: 'Kubernetes에서 Pod의 memory limits를 초과하면 어떻게 되는가?',
+          options: ['CPU throttling이 발생한다', 'Pod이 자동으로 스케일업된다', 'OOMKilled로 프로세스가 강제 종료된다', '추가 메모리가 자동 할당된다'],
+          answer: 2,
+          explanation: 'Memory limits를 초과하면 Linux 커널의 OOM Killer가 해당 컨테이너의 프로세스를 강제 종료합니다. CPU는 throttling으로 제한되지만, Memory는 초과 시 즉시 kill됩니다.'
+        },
+        {
+          type: 'choice',
+          question: 'Node에 MemoryPressure가 발생했을 때, 가장 먼저 퇴거(Eviction)되는 QoS Class는?',
+          options: ['Guaranteed', 'Burstable', 'BestEffort', '모든 Class가 동시에'],
+          answer: 2,
+          explanation: 'BestEffort Pod(requests/limits 미설정)이 가장 먼저 퇴거됩니다. 그 다음 Burstable, 마지막으로 Guaranteed 순서입니다.'
+        },
+        {
+          type: 'choice',
+          question: 'HPA가 스케일아웃했는데도 응답 지연이 줄어들지 않는 가장 가능성 높은 원인은?',
+          options: ['minReplicas가 너무 낮다', '병목이 Pod 수가 아닌 DB나 외부 서비스에 있다', 'CPU requests가 너무 높다', 'readinessProbe가 설정되지 않았다'],
+          answer: 1,
+          explanation: 'Pod 수를 늘려도 병목이 DB 커넥션, 외부 API 등에 있다면 응답 지연은 개선되지 않습니다. HPA는 Pod 레벨 리소스만 해결합니다.'
+        },
+        {
+          type: 'choice',
+          question: 'CPU limits가 500m인 컨테이너에서 발생하는 CPU throttling의 의미는?',
+          options: ['CPU requests가 부족하다', '컨테이너가 500m 이상 CPU를 사용하려 해서 제한당하고 있다', 'Node의 CPU가 부족하다', 'HPA가 비활성화되어 있다'],
+          answer: 1,
+          explanation: 'CPU throttling은 컨테이너가 limits(500m) 이상의 CPU를 사용하려 할 때 Linux CFS에 의해 제한되는 것입니다. 이는 응답 지연의 숨은 원인이 될 수 있습니다.'
+        },
+        {
+          type: 'short',
+          question: 'Kubernetes에서 resources.requests와 resources.limits를 동일하게 설정하면 해당 Pod의 QoS Class는? (영어)',
+          answer: 'Guaranteed',
+          explanation: '모든 컨테이너에서 requests = limits로 설정하면 Guaranteed QoS Class가 됩니다. 이 Pod은 리소스 압박 시 가장 마지막에 퇴거됩니다.'
+        }
+      ];
+
+      if (typeof QuizEngine !== 'undefined') {
+        QuizEngine.init('quiz-container', questions, 'module4');
+      }
+
+      // Update completion button state
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module4')) {
+        markButtonComplete();
+      }
+
+      // Initialize sidebar active states
+      initSidebar();
+    });
+
+    // ===== Complete Button Handler =====
+    function handleComplete() {
+      if (typeof ProgressTracker !== 'undefined') {
+        ProgressTracker.markComplete('module4');
+      }
+      markButtonComplete();
+    }
+
+    function markButtonComplete() {
+      var btn = document.getElementById('complete-btn');
+      if (btn) {
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'completed');
+        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>학습 완료됨';
+      }
+    }
+
+    // ===== Sidebar Navigation =====
+    function initSidebar() {
+      var sections = document.querySelectorAll('section[id]');
+      var sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+      // Intersection observer for active section tracking
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            sidebarLinks.forEach(function(link) {
+              link.classList.remove('active');
+              if (link.getAttribute('data-section') === id) {
+                link.classList.add('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-20% 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+
+      // Sidebar link click -> close mobile sidebar
+      sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var sidebar = document.getElementById('sidebar');
+          if (window.innerWidth < 1024) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    // ===== Progress Tracking =====
+    function updateProgress() {
+      var totalSections = 7;
+      var completed = 0;
+      for (var i = 1; i <= 6; i++) {
+        var check = document.getElementById('check-section-' + i);
+        if (check && check.classList.contains('done')) completed++;
+      }
+      var quizCheck = document.getElementById('check-quiz');
+      if (quizCheck && quizCheck.classList.contains('done')) completed++;
+
+      var percent = Math.round((completed / totalSections) * 100);
+      var bar = document.getElementById('progress-bar');
+      var percentText = document.getElementById('progress-percent');
+      if (bar) bar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+    }
+  </script>
+</body>
+</html>

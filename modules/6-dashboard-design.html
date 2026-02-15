@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 6: 모니터링 대시보드 설계 | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/auth.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+              900: '#111118',
+              850: '#16161f',
+              800: '#1e1e2a',
+              700: '#2a2a3a',
+              600: '#3a3a4d',
+              400: '#8888a0',
+              300: '#a0a0b8',
+              200: '#c0c0d0',
+              100: '#e0e0ea',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .info-box { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .tip-box { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.08); }
+    .warning-box { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .success-box { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.08); }
+    .sidebar-link.active { color: #60a5fa; border-left-color: #3b82f6; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { color: #93c5fd; border-left-color: #60a5fa; }
+    pre[class*="language-"] { border-radius: 0.5rem; margin: 1rem 0; }
+    .quiz-option { transition: all 0.2s; }
+    .quiz-option:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+    .quiz-option.correct { background: rgba(34, 197, 94, 0.15); border-color: #22c55e; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; }
+    .comparison-card { transition: transform 0.2s; }
+    .comparison-card:hover { transform: translateY(-2px); }
+    @media (max-width: 1023px) {
+      .sidebar-toggle-target { display: none; }
+      .sidebar-toggle-target.open { display: block; }
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          홈으로
+        </a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div>
+          <span class="text-blue-400 text-xs font-semibold tracking-wider uppercase">Module 6</span>
+          <h1 class="text-lg sm:text-xl font-bold text-gray-100">모니터링 대시보드 설계</h1>
+        </div>
+      </div>
+      <!-- Mobile sidebar toggle -->
+      <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+
+    <!-- Sidebar TOC -->
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">목차</h3>
+        <ul class="space-y-1">
+          <li>
+            <a href="#section-1" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-1">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-1"></span>
+              대시보드 설계 원칙
+            </a>
+          </li>
+          <li>
+            <a href="#section-2" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-2">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-2"></span>
+              설계 체크리스트
+            </a>
+          </li>
+          <li>
+            <a href="#section-3" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-3">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-3"></span>
+              도구별 대시보드 구성
+            </a>
+          </li>
+          <li>
+            <a href="#section-4" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-4">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-4"></span>
+              알림(Alert) 설계
+            </a>
+          </li>
+          <li>
+            <a href="#section-5" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-5">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-5"></span>
+              실전: 대시보드 구축
+            </a>
+          </li>
+          <li>
+            <a href="#quiz" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="quiz">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-quiz"></span>
+              퀴즈
+            </a>
+          </li>
+        </ul>
+        <!-- Progress indicator -->
+        <div class="mt-6 pt-4 border-t border-gray-800">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>진행률</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="w-full bg-gray-800 rounded-full h-1.5">
+            <div id="progress-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0">
+
+      <!-- Section 1: 대시보드 설계 원칙 -->
+      <section id="section-1" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <span class="text-blue-400 font-bold text-lg">1</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">대시보드 설계 원칙</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            좋은 대시보드는 <strong class="text-gray-100">5초 안에 시스템 상태를 파악</strong>할 수 있게 해줍니다.
+            하지만 많은 팀이 너무 많은 지표를 한 화면에 담으려다가 오히려 혼란스러운 대시보드를 만듭니다.
+            <strong class="text-gray-100">대시보드 피라미드</strong> 구조를 이해하면 이 문제를 해결할 수 있습니다.
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">대시보드 피라미드 (3계층)</h3>
+            <p class="text-sm text-gray-400 mb-6">
+              대시보드는 독자(Audience)에 따라 3개 계층으로 나뉩니다.
+              상위로 갈수록 넓은 시야(전체 상태), 하위로 갈수록 좁은 시야(상세 디버깅)를 제공합니다.
+            </p>
+
+            <!-- Pyramid Diagram -->
+            <div class="space-y-3 mb-6">
+              <!-- L1 Executive -->
+              <div class="bg-gradient-to-r from-purple-900/30 to-purple-800/30 border border-purple-700/50 rounded-lg p-5">
+                <div class="flex items-start justify-between mb-3">
+                  <h4 class="text-purple-300 font-bold text-sm uppercase tracking-wider">L1 Executive</h4>
+                  <span class="text-xs text-purple-400 font-mono">실시간 ~ 1시간</span>
+                </div>
+                <p class="text-sm text-gray-300 mb-3">서비스 전체 상태</p>
+                <div class="bg-gray-950/50 rounded-lg p-3 mb-3">
+                  <ul class="space-y-1 text-xs text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-purple-500 mt-0.5">•</span>
+                      SLO 달성률, 서비스 가용성, Error Budget 잔여량
+                    </li>
+                  </ul>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-purple-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  <span>대상: CTO, VP Engineering, 임원</span>
+                </div>
+              </div>
+
+              <!-- L2 Operational -->
+              <div class="bg-gradient-to-r from-emerald-900/30 to-emerald-800/30 border border-emerald-700/50 rounded-lg p-5">
+                <div class="flex items-start justify-between mb-3">
+                  <h4 class="text-emerald-300 font-bold text-sm uppercase tracking-wider">L2 Operational</h4>
+                  <span class="text-xs text-emerald-400 font-mono">실시간 ~ 5분</span>
+                </div>
+                <p class="text-sm text-gray-300 mb-3">팀별/컴포넌트별 상세</p>
+                <div class="bg-gray-950/50 rounded-lg p-3 mb-3">
+                  <ul class="space-y-1 text-xs text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-emerald-500 mt-0.5">•</span>
+                      API별 레이턴시, DB 커넥션 수, Pod 상태, 배포 현황
+                    </li>
+                  </ul>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-emerald-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  <span>대상: 팀 리드, SRE, 온콜 엔지니어</span>
+                </div>
+              </div>
+
+              <!-- L3 Detailed -->
+              <div class="bg-gradient-to-r from-cyan-900/30 to-cyan-800/30 border border-cyan-700/50 rounded-lg p-5">
+                <div class="flex items-start justify-between mb-3">
+                  <h4 class="text-cyan-300 font-bold text-sm uppercase tracking-wider">L3 Detailed</h4>
+                  <span class="text-xs text-cyan-400 font-mono">실시간</span>
+                </div>
+                <p class="text-sm text-gray-300 mb-3">디버깅용 상세</p>
+                <div class="bg-gray-950/50 rounded-lg p-3 mb-3">
+                  <ul class="space-y-1 text-xs text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-cyan-500 mt-0.5">•</span>
+                      개별 쿼리 실행 시간, Pod별 CPU/메모리, 개별 요청 트레이스, 로그
+                    </li>
+                  </ul>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-cyan-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  <span>대상: 장애 대응 엔지니어</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-800">
+                    <th class="px-4 py-2 text-left text-gray-400 font-medium">계층</th>
+                    <th class="px-4 py-2 text-left text-gray-400 font-medium">독자</th>
+                    <th class="px-4 py-2 text-left text-gray-400 font-medium">지표 예시</th>
+                    <th class="px-4 py-2 text-left text-gray-400 font-medium">갱신 주기</th>
+                    <th class="px-4 py-2 text-left text-gray-400 font-medium">행동</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-4 py-2 text-purple-400 font-semibold">L1</td>
+                    <td class="px-4 py-2 text-gray-300">임원</td>
+                    <td class="px-4 py-2 text-gray-400">SLO 달성률</td>
+                    <td class="px-4 py-2 text-gray-400">1시간</td>
+                    <td class="px-4 py-2 text-gray-400">전략 결정</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-4 py-2 text-emerald-400 font-semibold">L2</td>
+                    <td class="px-4 py-2 text-gray-300">팀 리드</td>
+                    <td class="px-4 py-2 text-gray-400">API 레이턴시</td>
+                    <td class="px-4 py-2 text-gray-400">5분</td>
+                    <td class="px-4 py-2 text-gray-400">팀 배정</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-4 py-2 text-cyan-400 font-semibold">L3</td>
+                    <td class="px-4 py-2 text-gray-300">엔지니어</td>
+                    <td class="px-4 py-2 text-gray-400">개별 트레이스</td>
+                    <td class="px-4 py-2 text-gray-400">실시간</td>
+                    <td class="px-4 py-2 text-gray-400">디버깅</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="info-box rounded-lg p-5">
+            <h4 class="font-semibold text-blue-400 mb-2">핵심 원칙</h4>
+            <p class="text-sm text-gray-300">
+              <strong>하나의 대시보드로 모든 사람을 만족시킬 수 없습니다.</strong>
+              L1/L2/L3를 분리하면 각 독자가 필요한 정보만 빠르게 얻을 수 있습니다.
+              장애 시에는 L1 → L2 → L3 순서로 드릴다운하며 원인을 특정합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: 대시보드 설계 체크리스트 -->
+      <section id="section-2" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <span class="text-purple-400 font-bold text-lg">2</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">대시보드 설계 체크리스트</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          좋은 대시보드는 명확한 설계 원칙을 따릅니다.
+          다음 체크리스트를 통과하지 못하면 대시보드가 아니라 "지표 쓰레기장"이 됩니다.
+        </p>
+
+        <!-- 5초 규칙 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-blue-400">1. 5초 규칙</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              대시보드를 보고 <strong class="text-gray-100">5초 안에 "정상/이상" 판단이 가능</strong>해야 합니다.
+              숫자만 나열되어 있거나 컨텍스트가 없으면 판단할 수 없습니다.
+            </p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="comparison-card bg-gray-950 border border-emerald-900/50 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-emerald-400 mb-3">좋은 예</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-500 mt-0.5">✓</span>
+                    빨간색/초록색 상태 표시
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-500 mt-0.5">✓</span>
+                    임계값 라인 표시
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-500 mt-0.5">✓</span>
+                    이상치 자동 하이라이트
+                  </li>
+                </ul>
+              </div>
+              <div class="comparison-card bg-gray-950 border border-red-900/50 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-red-400 mb-3">나쁜 예</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">✗</span>
+                    숫자만 나열
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">✗</span>
+                    컨텍스트 없는 그래프
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">✗</span>
+                    판단 기준 없음
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 비교 가능성 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-emerald-400">2. 비교 가능성</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              단일 시점의 값보다 <strong class="text-gray-100">비교</strong>가 중요합니다.
+              "지금"이 좋은지 나쁜지는 "과거"와 비교해야 알 수 있습니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">비교 패턴</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  어제 vs 오늘
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  배포 전 vs 후
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  지난주 동 시간대 vs 이번주 동 시간대
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 액션 연결 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-cyan-400">3. 액션 연결</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              지표가 이상하면 <strong class="text-gray-100">다음에 무엇을 해야 하는지</strong> 명확해야 합니다.
+              대시보드는 진단의 시작점이지 끝이 아닙니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">액션 예시</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  Runbook 링크 (장애 대응 절차)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  알림 채널 (Slack, PagerDuty)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  담당자 정보
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  상세 로그/트레이스로 이동
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 이상치 하이라이트 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-orange-400">4. 이상치 하이라이트</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              임계값을 초과하면 <strong class="text-gray-100">자동으로 색상이 변화</strong>해야 합니다.
+              사람이 숫자를 일일이 읽고 판단하게 만들면 안 됩니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">색상 체계 예시</h4>
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-6 bg-emerald-600 rounded"></div>
+                  <span class="text-gray-400">정상 (초록)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-6 bg-yellow-600 rounded"></div>
+                  <span class="text-gray-400">경고 (노랑)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="w-16 h-6 bg-red-600 rounded"></div>
+                  <span class="text-gray-400">위험 (빨강)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 흔한 실수 -->
+        <div class="warning-box rounded-lg p-5">
+          <h4 class="font-semibold text-red-400 mb-3">흔한 실수들</h4>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li class="flex items-start gap-2">
+              <span class="text-red-500 mt-0.5">✗</span>
+              지표 과다 배치 (한 대시보드에 20+개 그래프)
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-red-500 mt-0.5">✗</span>
+              컨텍스트 없는 숫자 ("CPU 73%" → 이게 좋은 건가 나쁜 건가?)
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-red-500 mt-0.5">✗</span>
+              시간 범위 불일치 (한 패널은 1시간, 다른 패널은 24시간)
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-red-500 mt-0.5">✗</span>
+              모든 사람에게 같은 대시보드 (L1/L2/L3 구분 없이)
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Section 3: 도구별 대시보드 구성 실전 -->
+      <section id="section-3" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+            <span class="text-cyan-400 font-bold text-lg">3</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">도구별 대시보드 구성 실전</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          이론을 실제 도구에 적용하는 방법을 알아봅니다.
+          Datadog, Grafana, CloudWatch 각각의 특징과 구성 방법을 살펴봅니다.
+        </p>
+
+        <!-- Datadog Dashboard -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-purple-400">Datadog Dashboard</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-purple-400 mb-3">위젯 유형</h4>
+              <div class="grid sm:grid-cols-2 gap-3">
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <ul class="space-y-1.5 text-sm text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-purple-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Timeseries:</strong> 시계열 그래프
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-purple-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Query Value:</strong> 단일 숫자 표시
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-purple-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Top List:</strong> 상위 N개 목록
+                    </li>
+                  </ul>
+                </div>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <ul class="space-y-1.5 text-sm text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-purple-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Heatmap:</strong> 분포 시각화
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-purple-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">SLO Summary:</strong> SLO 현황
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">Template Variables 활용</h4>
+              <p class="text-sm text-gray-400 mb-3">하나의 대시보드로 여러 환경/서비스를 전환하며 볼 수 있습니다.</p>
+              <pre><code class="language-json">{
+  "template_variables": [
+    {
+      "name": "service",
+      "default": "api-gateway",
+      "prefix": "service"
+    },
+    {
+      "name": "env",
+      "default": "production",
+      "prefix": "env"
+    },
+    {
+      "name": "region",
+      "default": "us-east-1",
+      "prefix": "region"
+    }
+  ]
+}</code></pre>
+            </div>
+
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">위젯 쿼리 예시</h4>
+              <pre><code class="language-json">{
+  "requests": [
+    {
+      "q": "avg:trace.flask.request.duration{env:$env,service:$service} by {resource_name}",
+      "display_type": "line",
+      "style": {
+        "palette": "dog_classic",
+        "line_type": "solid",
+        "line_width": "normal"
+      }
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grafana Dashboard -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-orange-400">Grafana Dashboard</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-orange-400 mb-3">패널 구성</h4>
+              <div class="grid sm:grid-cols-2 gap-3">
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <ul class="space-y-1.5 text-sm text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-orange-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Graph:</strong> 시계열 차트
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-orange-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Stat:</strong> 단일 값 표시
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-orange-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Table:</strong> 테이블 형식
+                    </li>
+                  </ul>
+                </div>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <ul class="space-y-1.5 text-sm text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-orange-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Gauge:</strong> 게이지 차트
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-orange-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Alert List:</strong> 알림 목록
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">변수(Variable) 활용</h4>
+              <p class="text-sm text-gray-400 mb-3">$namespace, $pod, $interval 등을 사용하여 동적 대시보드를 구성합니다.</p>
+              <pre><code class="language-bash"># Prometheus 데이터소스에서 변수 쿼리
+label_values(kube_pod_info, namespace)
+label_values(kube_pod_info{namespace="$namespace"}, pod)</code></pre>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">PromQL 쿼리 예시</h4>
+              <pre><code class="language-bash"># API 요청 성공률
+sum(rate(http_requests_total{status!~"5..", namespace="$namespace"}[5m]))
+/
+sum(rate(http_requests_total{namespace="$namespace"}[5m])) * 100
+
+# p99 레이턴시
+histogram_quantile(0.99,
+  sum(rate(http_request_duration_seconds_bucket{namespace="$namespace"}[5m])) by (le)
+)</code></pre>
+            </div>
+
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">알림 연동</h4>
+              <p class="text-sm text-gray-400">Grafana → Slack/PagerDuty로 알림을 발송합니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CloudWatch Dashboard -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-yellow-400">CloudWatch Dashboard</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-yellow-400 mb-3">위젯</h4>
+              <div class="grid sm:grid-cols-2 gap-3">
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <ul class="space-y-1.5 text-sm text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-yellow-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Line:</strong> 선 그래프
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-yellow-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Stacked Area:</strong> 누적 영역 차트
+                    </li>
+                  </ul>
+                </div>
+                <div class="bg-gray-950 rounded-lg p-3">
+                  <ul class="space-y-1.5 text-sm text-gray-400">
+                    <li class="flex items-start gap-2">
+                      <span class="text-yellow-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Number:</strong> 숫자 표시
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <span class="text-yellow-500 mt-0.5">•</span>
+                      <strong class="text-gray-300">Log:</strong> 로그 위젯
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">크로스-계정 대시보드</h4>
+              <p class="text-sm text-gray-400 mb-3">여러 AWS 계정의 메트릭을 하나의 대시보드에 표시할 수 있습니다.</p>
+            </div>
+
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">위젯 JSON 예시</h4>
+              <pre><code class="language-json">{
+  "type": "metric",
+  "properties": {
+    "metrics": [
+      [ "AWS/ApplicationELB", "TargetResponseTime",
+        { "stat": "Average" } ],
+      [ ".", "HTTPCode_Target_5XX_Count",
+        { "stat": "Sum", "yAxis": "right" } ]
+    ],
+    "period": 300,
+    "stat": "Average",
+    "region": "us-east-1",
+    "title": "ALB Performance"
+  }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- 도구별 비교 테이블 -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+            <h4 class="font-semibold text-gray-200 text-sm">도구별 특징 비교</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-950">
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">도구</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">비용</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">유연성</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">학습 곡선</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">최적 사용처</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-800">
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-purple-400 font-semibold">Datadog</td>
+                  <td class="px-5 py-3 text-gray-400">높음</td>
+                  <td class="px-5 py-3 text-emerald-400">높음</td>
+                  <td class="px-5 py-3 text-gray-400">낮음</td>
+                  <td class="px-5 py-3 text-gray-300">전체 스택 통합</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-orange-400 font-semibold">Grafana</td>
+                  <td class="px-5 py-3 text-emerald-400">무료</td>
+                  <td class="px-5 py-3 text-emerald-400">매우 높음</td>
+                  <td class="px-5 py-3 text-yellow-400">중간</td>
+                  <td class="px-5 py-3 text-gray-300">K8s 클러스터</td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-yellow-400 font-semibold">CloudWatch</td>
+                  <td class="px-5 py-3 text-yellow-400">중간</td>
+                  <td class="px-5 py-3 text-yellow-400">중간</td>
+                  <td class="px-5 py-3 text-emerald-400">낮음</td>
+                  <td class="px-5 py-3 text-gray-300">AWS 인프라</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: 알림(Alert) 설계 -->
+      <section id="section-4" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+            <span class="text-orange-400 font-bold text-lg">4</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">알림(Alert) 설계</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          대시보드만으로는 부족합니다. 장애가 발생하면 <strong class="text-gray-100">알림이 울려야</strong> 합니다.
+          하지만 너무 많은 알림은 오히려 독이 됩니다.
+        </p>
+
+        <!-- 알림 피로 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-red-400">알림 피로(Alert Fatigue) 문제</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              <strong class="text-gray-100">평균 엔지니어가 하루 50+개 알림을 받으면 무시하기 시작합니다.</strong>
+              알림이 너무 많으면 정작 중요한 알림을 놓치게 됩니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">해결 방법</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-red-500 mt-0.5">•</span>
+                  알림 정리 주기적 수행 (분기별 리뷰)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-red-500 mt-0.5">•</span>
+                  30일간 action 없는 알림 삭제 또는 재설계
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-red-500 mt-0.5">•</span>
+                  알림을 받은 후 실제로 행동한 비율 측정
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 좋은 알림의 조건 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-emerald-400">좋은 알림의 조건</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div class="space-y-4">
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-emerald-400 mb-2">1. Actionable (행동 가능성)</h4>
+                <p class="text-sm text-gray-400">받은 사람이 즉시 할 수 있는 행동이 명확해야 합니다.</p>
+              </div>
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-emerald-400 mb-2">2. 충분한 컨텍스트</h4>
+                <p class="text-sm text-gray-400">무엇이, 언제, 얼마나, 어디서, 왜(추정) 발생했는지 포함되어야 합니다.</p>
+              </div>
+              <div class="bg-gray-950 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-emerald-400 mb-2">3. 적절한 심각도</h4>
+                <p class="text-sm text-gray-400">모든 알림이 P1이면 아무것도 P1이 아닙니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 알림 심각도 체계 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4">알림 심각도 체계</h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">Level</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">설명</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">대응</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">예시</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-red-400 font-semibold">P1 Critical</td>
+                    <td class="px-5 py-3 text-gray-300">서비스 장애, 매출 영향</td>
+                    <td class="px-5 py-3 text-gray-400">즉시 대응 (24/7)</td>
+                    <td class="px-5 py-3 text-gray-400">API 전체 다운, DB 장애</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-orange-400 font-semibold">P2 High</td>
+                    <td class="px-5 py-3 text-gray-300">성능 저하, 일부 기능 영향</td>
+                    <td class="px-5 py-3 text-gray-400">업무시간 내 대응</td>
+                    <td class="px-5 py-3 text-gray-400">p99 SLO 위반, Replica Lag</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-yellow-400 font-semibold">P3 Medium</td>
+                    <td class="px-5 py-3 text-gray-300">잠재적 문제</td>
+                    <td class="px-5 py-3 text-gray-400">다음 스프린트</td>
+                    <td class="px-5 py-3 text-gray-400">디스크 70%, 인증서 30일</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-semibold">P4 Low</td>
+                    <td class="px-5 py-3 text-gray-300">정보성</td>
+                    <td class="px-5 py-3 text-gray-400">참고</td>
+                    <td class="px-5 py-3 text-gray-400">배포 완료, 스케일 이벤트</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Datadog Monitor 예시 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4">Datadog Monitor 설정 예시</h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <pre><code class="language-json">{
+  "name": "API Error Rate High",
+  "type": "metric alert",
+  "query": "avg(last_5m):sum:trace.flask.request.errors{env:production,service:api}.as_count() / sum:trace.flask.request.hits{env:production,service:api}.as_count() > 0.05",
+  "message": "{{#is_alert}}
+**[P1 CRITICAL] API Error Rate > 5%**
+
+**Current**: {{value}}%
+**Service**: {{service.name}}
+**Environment**: {{env}}
+
+**Actions**:
+- Check APM traces: https://app.datadoghq.com/apm/traces
+- Review recent deployments
+- Check Runbook: https://wiki.company.com/runbooks/api-errors
+
+@slack-oncall @pagerduty-critical
+{{/is_alert}}",
+  "tags": ["service:api", "severity:p1"],
+  "priority": 1,
+  "options": {
+    "thresholds": {
+      "critical": 0.05,
+      "warning": 0.03
+    },
+    "notify_no_data": true,
+    "no_data_timeframe": 10
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="warning-box rounded-lg p-5">
+          <h4 class="font-semibold text-red-400 mb-2">중요: 알림은 적을수록 좋습니다</h4>
+          <p class="text-sm text-gray-300">
+            "모든 것을 알림으로 만들자"는 잘못된 접근입니다.
+            <strong>알림은 즉시 행동이 필요한 것만</strong> 설정하세요.
+            나머지는 대시보드에서 확인하면 됩니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- Section 5: 실전: 서비스 대시보드 구축 워크스루 -->
+      <section id="section-5" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <span class="text-emerald-400 font-bold text-lg">5</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">실전: 서비스 대시보드 구축 워크스루</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          가상의 이커머스 서비스 <strong class="text-gray-100">"ShopFast"</strong>를 위한 대시보드를 설계해봅니다.
+          이론을 실제 사례에 적용하는 과정을 단계별로 살펴봅니다.
+        </p>
+
+        <!-- Step 1: 서비스 구조 파악 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-blue-400">Step 1: 서비스 구조 파악</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div class="bg-gray-950 rounded-lg p-6 font-mono text-sm text-gray-300 whitespace-pre overflow-x-auto">
+<span class="text-blue-400">[사용자]</span>
+   ↓
+<span class="text-purple-400">[Frontend - React SPA]</span>
+   ↓
+<span class="text-emerald-400">[API Gateway - Kong]</span>
+   ↓
+   ├─ <span class="text-cyan-400">[주문 서비스]</span> → RDS (MySQL)
+   ├─ <span class="text-cyan-400">[결제 서비스]</span> → RDS (MySQL) + 외부 PG
+   └─ <span class="text-cyan-400">[재고 서비스]</span> → Redis + RDS</div>
+          </div>
+        </div>
+
+        <!-- Step 2: L1 Executive 대시보드 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-purple-400">Step 2: L1 Executive 대시보드 설계</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">임원이 한눈에 보는 전체 서비스 상태</p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">포함 지표</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-purple-500 mt-0.5">•</span>
+                  전체 가용성 (%) - 지난 30일
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-purple-500 mt-0.5">•</span>
+                  Error Budget 잔여량 (%) - SLO 대비
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-purple-500 mt-0.5">•</span>
+                  주요 SLO 달성 현황 (주문 성공률, 결제 성공률)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-purple-500 mt-0.5">•</span>
+                  현재 활성 장애 수
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: L2 Operational 대시보드 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-emerald-400">Step 3: L2 Operational 대시보드 설계</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">팀 리드와 온콜 엔지니어가 보는 서비스별 상세</p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">포함 지표</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  서비스별 RED 지표 (Rate, Error, Duration)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  DB 커넥션 풀 사용률, IOPS
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  K8s Pod 상태 (Running/Pending/Failed)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  최근 배포 현황 및 영향
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 mt-0.5">•</span>
+                  외부 의존성 상태 (PG API, 3rd party)
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: L3 Detailed 대시보드 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-cyan-400">Step 4: L3 Detailed 대시보드 설계</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <p class="text-gray-300 mb-4">장애 대응 엔지니어가 디버깅에 사용하는 상세 정보</p>
+            <div class="bg-gray-950 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">포함 지표</h4>
+              <ul class="space-y-2 text-sm text-gray-400">
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  Top Slow Queries (실행 시간 상위 10개)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  개별 Pod별 CPU/메모리 사용률
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  요청별 트레이스 (APM trace waterfall)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  에러 로그 스트림 (실시간)
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 mt-0.5">•</span>
+                  네트워크 I/O, 디스크 I/O wait
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: 알림 설계 -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-orange-400">Step 5: 알림 설계</span>
+          </h3>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div class="space-y-4">
+              <div class="bg-red-950/30 border border-red-900/50 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-red-400 mb-2">P1: Critical</h4>
+                <ul class="space-y-1.5 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">•</span>
+                    전체 에러율 &gt; 5% (5분 평균)
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">•</span>
+                    결제 API 완전 다운 (no data 5분)
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-red-500 mt-0.5">•</span>
+                    DB Primary 다운
+                  </li>
+                </ul>
+              </div>
+              <div class="bg-orange-950/30 border border-orange-900/50 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-orange-400 mb-2">P2: High</h4>
+                <ul class="space-y-1.5 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-orange-500 mt-0.5">•</span>
+                    p99 레이턴시 &gt; SLO (200ms)
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-orange-500 mt-0.5">•</span>
+                    DB CPU &gt; 80% (10분 이상)
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-orange-500 mt-0.5">•</span>
+                    Replica Lag &gt; 10초
+                  </li>
+                </ul>
+              </div>
+              <div class="bg-yellow-950/30 border border-yellow-900/50 rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-yellow-400 mb-2">P3: Medium</h4>
+                <ul class="space-y-1.5 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="text-yellow-500 mt-0.5">•</span>
+                    디스크 사용률 &gt; 70%
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-yellow-500 mt-0.5">•</span>
+                    메모리 사용률 &gt; 75%
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-yellow-500 mt-0.5">•</span>
+                    SSL 인증서 만료 30일 전
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="success-box rounded-lg p-5">
+          <h4 class="font-semibold text-emerald-400 mb-2">이 구조의 장점</h4>
+          <p class="text-sm text-gray-300">
+            장애 발생 시 L1 → L2 → L3 순서로 드릴다운하며 원인을 빠르게 특정할 수 있습니다.
+            임원은 L1만, 팀 리드는 L2까지, 엔지니어는 L3까지 접근하여 각자에게 필요한 정보만 얻습니다.
+            알림은 심각도별로 분리되어 있어 알림 피로를 최소화합니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- Quiz Section -->
+      <section id="quiz" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">퀴즈</h2>
+        </div>
+
+        <p class="text-gray-400 text-sm mb-6">
+          학습한 내용을 확인해봅시다. 5문제를 모두 풀어보세요.
+        </p>
+
+        <div id="quiz-container">
+          <!-- Quiz questions will be rendered here by QuizEngine -->
+        </div>
+      </section>
+
+      <!-- Bottom Navigation -->
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <!-- Complete Button -->
+        <div class="flex justify-center mb-8">
+          <button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950">
+            학습 완료
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between">
+          <a href="5-incident-analysis.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Module 5: 장애 분석
+          </a>
+          <a href="../index.html" class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+            홈으로
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+  <script src="../js/progress.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    // ===== Quiz Initialization =====
+    document.addEventListener('DOMContentLoaded', function() {
+      var questions = [
+        {
+          type: 'choice',
+          question: '대시보드 피라미드에서 "API별 레이턴시, DB 커넥션 수" 지표가 속하는 계층은?',
+          options: ['L1 Executive', 'L2 Operational', 'L3 Detailed', 'L0 Summary'],
+          answer: 1,
+          explanation: 'API별 레이턴시, DB 커넥션 수는 팀별/컴포넌트별 상세 지표로 L2 Operational 계층에 해당합니다.'
+        },
+        {
+          type: 'choice',
+          question: '"5초 규칙"의 의미로 가장 적절한 것은?',
+          options: ['대시보드 로딩이 5초 이내여야 한다', '5초 안에 정상/이상 판단이 가능해야 한다', '알림을 5초 이내에 발송해야 한다', '5초마다 데이터를 갱신해야 한다'],
+          answer: 1,
+          explanation: '5초 규칙은 대시보드를 본 후 5초 안에 서비스가 정상인지 이상인지 판단할 수 있어야 한다는 설계 원칙입니다.'
+        },
+        {
+          type: 'choice',
+          question: '다음 중 "알림 피로(Alert Fatigue)"를 줄이는 방법으로 적절하지 않은 것은?',
+          options: ['30일간 action 없는 알림 정리', '모든 알림을 P1으로 설정', '알림에 충분한 컨텍스트 포함', '심각도를 P1~P4로 분류'],
+          answer: 1,
+          explanation: '모든 알림을 P1으로 설정하면 오히려 알림 피로가 심화됩니다. "모든 것이 긴급하면, 아무것도 긴급하지 않다"는 원칙을 기억하세요.'
+        },
+        {
+          type: 'choice',
+          question: 'Grafana에서 PromQL 변수를 활용하는 이유는?',
+          options: ['보안 강화', '하나의 대시보드로 여러 환경/서비스를 전환하며 볼 수 있어서', '쿼리 성능 향상', '데이터 보존 기간 연장'],
+          answer: 1,
+          explanation: 'Template Variables를 사용하면 $namespace, $service 등을 전환하며 하나의 대시보드로 여러 환경을 볼 수 있어 대시보드 중복을 줄입니다.'
+        },
+        {
+          type: 'choice',
+          question: '장애 발생 시 대시보드 드릴다운 순서로 올바른 것은?',
+          options: ['L3 → L2 → L1', 'L1 → L3 → L2', 'L1 → L2 → L3', 'L2 → L1 → L3'],
+          answer: 2,
+          explanation: '장애 발생 시 L1(전체 상태 확인) → L2(문제 컴포넌트 특정) → L3(상세 디버깅) 순서로 드릴다운합니다.'
+        }
+      ];
+
+      if (typeof QuizEngine !== 'undefined') {
+        QuizEngine.init('quiz-container', questions, 'module6');
+      }
+
+      // Update completion button state
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module6')) {
+        markButtonComplete();
+      }
+
+      // Initialize sidebar active states
+      initSidebar();
+    });
+
+    // ===== Complete Button Handler =====
+    function handleComplete() {
+      if (typeof ProgressTracker !== 'undefined') {
+        ProgressTracker.markComplete('module6');
+      }
+      markButtonComplete();
+    }
+
+    function markButtonComplete() {
+      var btn = document.getElementById('complete-btn');
+      if (btn) {
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'completed');
+        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>학습 완료됨';
+      }
+    }
+
+    // ===== Sidebar Navigation =====
+    function initSidebar() {
+      var sections = document.querySelectorAll('section[id]');
+      var sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+      // Intersection observer for active section tracking
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            sidebarLinks.forEach(function(link) {
+              link.classList.remove('active');
+              if (link.getAttribute('data-section') === id) {
+                link.classList.add('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-20% 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+
+      // Sidebar link click -> close mobile sidebar
+      sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var sidebar = document.getElementById('sidebar');
+          if (window.innerWidth < 1024) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    // ===== Progress Tracking =====
+    function updateProgress() {
+      var totalSections = 7;
+      var completed = 0;
+      for (var i = 1; i <= 6; i++) {
+        var check = document.getElementById('check-section-' + i);
+        if (check && check.classList.contains('done')) completed++;
+      }
+      var quizCheck = document.getElementById('check-quiz');
+      if (quizCheck && quizCheck.classList.contains('done')) completed++;
+
+      var percent = Math.round((completed / totalSections) * 100);
+      var bar = document.getElementById('progress-bar');
+      var percentText = document.getElementById('progress-percent');
+      if (bar) bar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+    }
+  </script>
+</body>
+</html>

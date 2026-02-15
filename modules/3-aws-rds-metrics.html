@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 3: AWS RDS 메트릭 분석 | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/auth.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+              900: '#111118',
+              850: '#16161f',
+              800: '#1e1e2a',
+              700: '#2a2a3a',
+              600: '#3a3a4d',
+              400: '#8888a0',
+              300: '#a0a0b8',
+              200: '#c0c0d0',
+              100: '#e0e0ea',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .info-box { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .tip-box { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.08); }
+    .warning-box { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .success-box { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.08); }
+    .sidebar-link.active { color: #60a5fa; border-left-color: #3b82f6; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { color: #93c5fd; border-left-color: #60a5fa; }
+    pre[class*="language-"] { border-radius: 0.5rem; margin: 1rem 0; }
+    .quiz-option { transition: all 0.2s; }
+    .quiz-option:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+    .quiz-option.correct { background: rgba(34, 197, 94, 0.15); border-color: #22c55e; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; }
+    .comparison-card { transition: transform 0.2s; }
+    .comparison-card:hover { transform: translateY(-2px); }
+    @media (max-width: 1023px) {
+      .sidebar-toggle-target { display: none; }
+      .sidebar-toggle-target.open { display: block; }
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          홈으로
+        </a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div>
+          <span class="text-blue-400 text-xs font-semibold tracking-wider uppercase">Module 3</span>
+          <h1 class="text-lg sm:text-xl font-bold text-gray-100">AWS RDS 메트릭 분석</h1>
+        </div>
+      </div>
+      <!-- Mobile sidebar toggle -->
+      <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+
+    <!-- Sidebar TOC -->
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">목차</h3>
+        <ul class="space-y-1">
+          <li>
+            <a href="#section-1" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-1">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-1"></span>
+              RDS 핵심 모니터링 지표
+            </a>
+          </li>
+          <li>
+            <a href="#section-2" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-2">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-2"></span>
+              CPU &amp; 커넥션
+            </a>
+          </li>
+          <li>
+            <a href="#section-3" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-3">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-3"></span>
+              IOPS &amp; 스토리지
+            </a>
+          </li>
+          <li>
+            <a href="#section-4" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-4">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-4"></span>
+              Replication &amp; 지연
+            </a>
+          </li>
+          <li>
+            <a href="#section-5" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-5">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-5"></span>
+              Performance Insights
+            </a>
+          </li>
+          <li>
+            <a href="#section-6" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-6">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-6"></span>
+              실전: DB 응답 지연 추적
+            </a>
+          </li>
+          <li>
+            <a href="#quiz" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="quiz">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-quiz"></span>
+              퀴즈
+            </a>
+          </li>
+        </ul>
+        <!-- Progress indicator -->
+        <div class="mt-6 pt-4 border-t border-gray-800">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>진행률</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="w-full bg-gray-800 rounded-full h-1.5">
+            <div id="progress-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0">
+
+      <!-- Section 1: RDS 핵심 모니터링 지표 -->
+      <section id="section-1" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <span class="text-blue-400 font-bold text-lg">1</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">RDS 핵심 모니터링 지표</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            AWS RDS를 운영할 때 데이터베이스 성능과 안정성을 보장하려면 핵심 지표를 지속적으로 모니터링해야 합니다.
+            CloudWatch는 RDS의 주요 메트릭을 실시간으로 제공하며, 이를 통해 문제가 발생하기 전에 미리 감지하고 대응할 수 있습니다.
+          </p>
+
+          <!-- Top 10 RDS Metrics Table -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+              <h4 class="font-semibold text-gray-200 text-sm">CloudWatch Top 10 RDS 메트릭</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">메트릭</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">의미</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">위험 임계값</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">카테고리</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">CPUUtilization</td>
+                    <td class="px-5 py-3 text-gray-300">CPU 사용률</td>
+                    <td class="px-5 py-3 text-red-400">&gt; 80% 지속</td>
+                    <td class="px-5 py-3 text-gray-500">Compute</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">DatabaseConnections</td>
+                    <td class="px-5 py-3 text-gray-300">활성 커넥션 수</td>
+                    <td class="px-5 py-3 text-red-400">max_connections 근접</td>
+                    <td class="px-5 py-3 text-gray-500">Connection</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">FreeableMemory</td>
+                    <td class="px-5 py-3 text-gray-300">사용 가능 메모리</td>
+                    <td class="px-5 py-3 text-red-400">&lt; 25% 총 메모리</td>
+                    <td class="px-5 py-3 text-gray-500">Memory</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">ReadIOPS / WriteIOPS</td>
+                    <td class="px-5 py-3 text-gray-300">초당 I/O 작업 수</td>
+                    <td class="px-5 py-3 text-red-400">gp3 기본 3000 초과</td>
+                    <td class="px-5 py-3 text-gray-500">Storage</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">DiskQueueDepth</td>
+                    <td class="px-5 py-3 text-gray-300">디스크 대기 큐</td>
+                    <td class="px-5 py-3 text-red-400">&gt; 1 지속</td>
+                    <td class="px-5 py-3 text-gray-500">Storage</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">FreeStorageSpace</td>
+                    <td class="px-5 py-3 text-gray-300">남은 디스크</td>
+                    <td class="px-5 py-3 text-red-400">&lt; 20%</td>
+                    <td class="px-5 py-3 text-gray-500">Storage</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">ReplicaLag</td>
+                    <td class="px-5 py-3 text-gray-300">복제 지연 시간</td>
+                    <td class="px-5 py-3 text-red-400">&gt; 1초</td>
+                    <td class="px-5 py-3 text-gray-500">Replication</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">SwapUsage</td>
+                    <td class="px-5 py-3 text-gray-300">스왑 메모리 사용량</td>
+                    <td class="px-5 py-3 text-red-400">&gt; 0 (발생 자체가 문제)</td>
+                    <td class="px-5 py-3 text-gray-500">Memory</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">ReadLatency / WriteLatency</td>
+                    <td class="px-5 py-3 text-gray-300">I/O 지연 시간</td>
+                    <td class="px-5 py-3 text-red-400">&gt; 20ms</td>
+                    <td class="px-5 py-3 text-gray-500">Storage</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-blue-400 font-mono text-xs">NetworkReceiveThroughput</td>
+                    <td class="px-5 py-3 text-gray-300">네트워크 수신 처리량</td>
+                    <td class="px-5 py-3 text-red-400">대역폭 한계 근접</td>
+                    <td class="px-5 py-3 text-gray-500">Network</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="info-box rounded-lg p-5">
+            <p class="text-sm text-gray-300">
+              <strong class="text-blue-400">핵심 포인트:</strong>
+              RDS 모니터링에서 가장 중요한 3가지는 <strong class="text-gray-100">CPUUtilization</strong>, <strong class="text-gray-100">DatabaseConnections</strong>, <strong class="text-gray-100">DiskQueueDepth</strong>입니다.
+              이 세 지표만 제대로 추적해도 대부분의 성능 문제를 사전에 감지할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: CPU & 커넥션 -->
+      <section id="section-2" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <span class="text-purple-400 font-bold text-lg">2</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">CPU &amp; 커넥션</h2>
+        </div>
+
+        <div class="space-y-8 text-gray-300 leading-relaxed">
+          <!-- CPUUtilization Analysis -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">CPUUtilization 분석</h3>
+            <p class="mb-4">
+              CPU 사용률은 데이터베이스가 쿼리를 처리하는 데 사용하는 컴퓨팅 리소스의 비율입니다.
+              지속적인 높은 CPU 사용률은 쿼리 최적화가 필요하거나 인스턴스 스케일업이 필요하다는 신호입니다.
+            </p>
+
+            <div class="grid sm:grid-cols-3 gap-4 mb-6">
+              <div class="comparison-card bg-gray-900 border border-emerald-900/50 rounded-xl p-5">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                  <h4 class="font-semibold text-emerald-400 text-sm">정상</h4>
+                </div>
+                <p class="text-2xl font-bold text-emerald-400 mb-2">30-60%</p>
+                <p class="text-sm text-gray-400">여유 있는 상태. 트래픽 증가에 대응 가능</p>
+              </div>
+              <div class="comparison-card bg-gray-900 border border-amber-900/50 rounded-xl p-5">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <h4 class="font-semibold text-amber-400 text-sm">주의</h4>
+                </div>
+                <p class="text-2xl font-bold text-amber-400 mb-2">60-80%</p>
+                <p class="text-sm text-gray-400">모니터링 강화 필요. 최적화 검토</p>
+              </div>
+              <div class="comparison-card bg-gray-900 border border-red-900/50 rounded-xl p-5">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                  <h4 class="font-semibold text-red-400 text-sm">위험</h4>
+                </div>
+                <p class="text-2xl font-bold text-red-400 mb-2">80%+</p>
+                <p class="text-sm text-gray-400">지속 시 즉각 대응 필요</p>
+              </div>
+            </div>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h4 class="font-semibold text-gray-100 mb-3">원인과 대응</h4>
+              <div class="space-y-3">
+                <div class="flex gap-3">
+                  <span class="text-red-400 flex-shrink-0">원인:</span>
+                  <p class="text-gray-400 text-sm">비효율적 쿼리, 인덱스 누락, 과도한 동시 요청, 풀 테이블 스캔</p>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-emerald-400 flex-shrink-0">대응:</span>
+                  <div class="text-gray-400 text-sm space-y-1">
+                    <p>• EXPLAIN으로 slow query 분석</p>
+                    <p>• 인덱스 추가 (적절한 컬럼 선택)</p>
+                    <p>• 읽기 복제본(Read Replica) 활용</p>
+                    <p>• 인스턴스 스케일업 (최후 수단)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DatabaseConnections Analysis -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">DatabaseConnections 분석</h3>
+            <p class="mb-4">
+              동시에 데이터베이스에 연결된 클라이언트 수입니다. RDS 인스턴스마다 최대 커넥션 수가 정해져 있으며,
+              이를 초과하면 새로운 연결 요청이 거부됩니다.
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+              <h4 class="font-semibold text-gray-100 mb-3">max_connections 계산 공식</h4>
+              <div class="bg-gray-950 rounded-lg p-4 font-mono text-sm text-cyan-400">
+                max_connections = {DBInstanceClassMemory/12582880}
+              </div>
+              <p class="text-sm text-gray-500 mt-3">
+                예: db.r5.large (16GB) → max_connections ≈ 1,340
+              </p>
+            </div>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+              <h4 class="font-semibold text-gray-100 mb-3">커넥션 풀 설정 가이드</h4>
+              <p class="text-sm text-gray-400 mb-3">
+                적정 풀 사이즈 = <strong class="text-cyan-400">(CPU cores * 2) + 1</strong>
+              </p>
+              <div class="bg-gray-950 rounded-lg p-4 text-sm text-gray-400">
+                <p>예: 4 vCPU 인스턴스 → 풀 크기 = (4 * 2) + 1 = 9</p>
+                <p class="mt-2">애플리케이션 인스턴스가 10개라면 → 총 90개 커넥션 사용</p>
+              </div>
+            </div>
+
+            <div class="warning-box rounded-lg p-5">
+              <h4 class="font-semibold text-red-400 mb-2">Warning</h4>
+              <p class="text-sm text-gray-300">
+                커넥션 풀 없이 요청마다 새 커넥션을 열면 순식간에 max_connections에 도달합니다.
+                반드시 애플리케이션 레벨에서 커넥션 풀을 구현하세요.
+              </p>
+            </div>
+          </div>
+
+          <!-- CloudWatch Query Example -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-100 mb-3">CloudWatch 쿼리 예시</h4>
+            <pre class="bg-gray-950 rounded-lg p-4 overflow-x-auto"><code class="language-json">{
+  "metrics": [
+    ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", "mydb-prod"],
+    ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "mydb-prod"]
+  ],
+  "period": 300,
+  "stat": "Average"
+}</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: IOPS & 스토리지 -->
+      <section id="section-3" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+            <span class="text-cyan-400 font-bold text-lg">3</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">IOPS &amp; 스토리지</h2>
+        </div>
+
+        <div class="space-y-8 text-gray-300 leading-relaxed">
+          <!-- gp3 vs io2 Comparison -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">gp3 vs io2 비교</h3>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-gray-950">
+                      <th class="px-5 py-3 text-left text-gray-400 font-medium">항목</th>
+                      <th class="px-5 py-3 text-left text-gray-400 font-medium">gp3</th>
+                      <th class="px-5 py-3 text-left text-gray-400 font-medium">io2</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-800">
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-gray-300 font-medium">기본 IOPS</td>
+                      <td class="px-5 py-3 text-cyan-400">3,000</td>
+                      <td class="px-5 py-3 text-purple-400">프로비저닝</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-gray-300 font-medium">최대 IOPS</td>
+                      <td class="px-5 py-3 text-cyan-400">16,000</td>
+                      <td class="px-5 py-3 text-purple-400">64,000</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-gray-300 font-medium">기본 처리량</td>
+                      <td class="px-5 py-3 text-cyan-400">125 MB/s</td>
+                      <td class="px-5 py-3 text-purple-400">프로비저닝</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-gray-300 font-medium">가격 모델</td>
+                      <td class="px-5 py-3 text-gray-400">용량 + IOPS 추가</td>
+                      <td class="px-5 py-3 text-gray-400">용량 + IOPS 프로비저닝</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-gray-300 font-medium">적합한 경우</td>
+                      <td class="px-5 py-3 text-gray-400">일반 워크로드</td>
+                      <td class="px-5 py-3 text-gray-400">높은 I/O 요구</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Burst Credit Scenario -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">Burst Credit 소진 시나리오 (gp2 레거시)</h3>
+            <p class="mb-4">
+              gp2는 AWS의 구형 스토리지 타입으로, Burst Credit 메커니즘을 사용합니다.
+              신규 RDS는 gp3를 사용하지만, 레거시 시스템에서는 여전히 gp2를 사용할 수 있으므로 이해가 필요합니다.
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+              <h4 class="font-semibold text-gray-100 mb-3">gp2 IOPS 계산</h4>
+              <div class="space-y-2 text-sm text-gray-400">
+                <p>• 기본 IOPS = 3 IOPS/GB</p>
+                <p>• 100GB 볼륨 = 300 IOPS 기본</p>
+                <p>• 최대 3,000 IOPS까지 burst 가능 (단, credit 소진 시 기본으로 복귀)</p>
+              </div>
+            </div>
+
+            <div class="warning-box rounded-lg p-5">
+              <h4 class="font-semibold text-red-400 mb-2">증상: Burst Credit 소진</h4>
+              <div class="text-sm text-gray-300 space-y-2">
+                <p>• 갑자기 쿼리가 느려짐 (이전엔 빨랐는데 갑자기 지연)</p>
+                <p>• DiskQueueDepth가 급증</p>
+                <p>• CloudWatch에서 BurstBalance가 0%에 근접</p>
+                <p><strong class="text-red-300">해결:</strong> gp3로 마이그레이션하거나 볼륨 크기 증가</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- DiskQueueDepth -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">DiskQueueDepth</h3>
+            <p class="mb-4">
+              디스크에 대기 중인 I/O 요청의 수입니다. 이 값이 높다는 것은 디스크가 처리할 수 있는 속도보다
+              더 많은 I/O 요청이 들어오고 있다는 의미입니다.
+            </p>
+
+            <div class="grid sm:grid-cols-3 gap-4 mb-6">
+              <div class="comparison-card bg-gray-900 border border-emerald-900/50 rounded-xl p-5 text-center">
+                <p class="text-3xl font-bold text-emerald-400 mb-2">0-0.5</p>
+                <p class="text-sm text-gray-400">이상적인 상태. I/O가 즉시 처리됨</p>
+              </div>
+              <div class="comparison-card bg-gray-900 border border-amber-900/50 rounded-xl p-5 text-center">
+                <p class="text-3xl font-bold text-amber-400 mb-2">0.5-1</p>
+                <p class="text-sm text-gray-400">약간의 대기. 모니터링 필요</p>
+              </div>
+              <div class="comparison-card bg-gray-900 border border-red-900/50 rounded-xl p-5 text-center">
+                <p class="text-3xl font-bold text-red-400 mb-2">1+</p>
+                <p class="text-sm text-gray-400">디스크 병목. 즉시 조치 필요</p>
+              </div>
+            </div>
+
+            <div class="success-box rounded-lg p-5">
+              <h4 class="font-semibold text-emerald-400 mb-2">대응 방법</h4>
+              <div class="text-sm text-gray-300 space-y-2">
+                <p>• IOPS 프로비저닝 증가 (gp3: 3,000 → 6,000+)</p>
+                <p>• io2로 스토리지 타입 변경 (높은 I/O 워크로드)</p>
+                <p>• 쿼리 최적화로 I/O 요청 자체를 줄임</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Latency -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">ReadLatency / WriteLatency</h3>
+            <p class="mb-4">
+              디스크 I/O 작업의 평균 완료 시간입니다. 밀리초(ms) 단위로 측정되며, 낮을수록 좋습니다.
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h4 class="font-semibold text-gray-100 mb-3">해석 가이드</h4>
+              <div class="space-y-2 text-sm">
+                <div class="flex gap-3">
+                  <span class="text-emerald-400 flex-shrink-0 font-mono">&lt; 10ms:</span>
+                  <p class="text-gray-400">매우 양호. SSD 기대 성능</p>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-amber-400 flex-shrink-0 font-mono">10-20ms:</span>
+                  <p class="text-gray-400">정상 범위. 모니터링 유지</p>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-red-400 flex-shrink-0 font-mono">&gt; 20ms:</span>
+                  <p class="text-gray-400">높은 지연. IOPS 증가 또는 쿼리 최적화 필요</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: Replication & 지연 -->
+      <section id="section-4" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+            <span class="text-orange-400 font-bold text-lg">4</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Replication &amp; 지연</h2>
+        </div>
+
+        <div class="space-y-8 text-gray-300 leading-relaxed">
+          <!-- Read Replica Structure -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">Read Replica 구조</h3>
+            <p class="mb-4">
+              AWS RDS는 읽기 부하를 분산하기 위해 Read Replica를 지원합니다.
+              Primary 인스턴스의 변경사항이 비동기 방식으로 Replica에 복제됩니다.
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+              <div class="flex items-center justify-center gap-8 flex-wrap">
+                <div class="text-center">
+                  <div class="w-24 h-24 rounded-xl bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center mb-3">
+                    <span class="text-blue-400 font-bold">Primary</span>
+                  </div>
+                  <p class="text-sm text-gray-400">쓰기 + 읽기</p>
+                </div>
+                <div class="text-cyan-400 text-2xl">→</div>
+                <div class="text-center">
+                  <div class="w-24 h-24 rounded-xl bg-cyan-500/20 border-2 border-cyan-500 flex items-center justify-center mb-3">
+                    <span class="text-cyan-400 font-bold">Replica</span>
+                  </div>
+                  <p class="text-sm text-gray-400">읽기 전용</p>
+                </div>
+              </div>
+              <p class="text-center text-sm text-gray-500 mt-4">비동기 복제 (Asynchronous Replication)</p>
+            </div>
+          </div>
+
+          <!-- ReplicaLag Causes -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">ReplicaLag 원인</h3>
+            <p class="mb-4">
+              ReplicaLag는 Primary와 Replica 간의 데이터 차이를 초(second) 단위로 나타냅니다.
+              이 값이 높을수록 Replica의 데이터가 Primary보다 뒤처져 있다는 의미입니다.
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+              <h4 class="font-semibold text-gray-100 mb-3">주요 원인</h4>
+              <div class="space-y-3">
+                <div class="flex gap-3">
+                  <span class="text-red-400 flex-shrink-0">1.</span>
+                  <div>
+                    <p class="text-gray-300 font-medium">Primary의 쓰기 부하가 높음</p>
+                    <p class="text-sm text-gray-500">Replica가 변경사항을 따라잡을 수 없을 만큼 빠른 쓰기</p>
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-red-400 flex-shrink-0">2.</span>
+                  <div>
+                    <p class="text-gray-300 font-medium">Replica 인스턴스 스펙 부족</p>
+                    <p class="text-sm text-gray-500">Replica의 CPU/메모리가 Primary보다 낮음</p>
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-red-400 flex-shrink-0">3.</span>
+                  <div>
+                    <p class="text-gray-300 font-medium">네트워크 대역폭 한계</p>
+                    <p class="text-sm text-gray-500">Primary-Replica 간 네트워크 지연 또는 포화</p>
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-red-400 flex-shrink-0">4.</span>
+                  <div>
+                    <p class="text-gray-300 font-medium">Replica에 과도한 읽기 부하</p>
+                    <p class="text-sm text-gray-500">복제 적용 프로세스와 읽기 쿼리가 리소스 경쟁</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Consistency Issue -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">데이터 정합성 문제</h3>
+            <p class="mb-4">
+              ReplicaLag가 존재하면 사용자가 최신 데이터를 볼 수 없는 문제가 발생할 수 있습니다.
+            </p>
+
+            <div class="warning-box rounded-lg p-5 mb-4">
+              <h4 class="font-semibold text-red-400 mb-2">실제 사례: "완료했는데 진도가 안 올라가요"</h4>
+              <div class="text-sm text-gray-300 space-y-3">
+                <div class="bg-gray-950 rounded-lg p-4">
+                  <p class="font-mono text-xs text-gray-500 mb-2">시간 순서</p>
+                  <div class="space-y-2">
+                    <p><span class="text-cyan-400">10:30:00</span> 학생이 학습 완료 → Primary에 기록</p>
+                    <p><span class="text-amber-400">10:30:02</span> 학생이 진도 페이지 새로고침 → Replica에서 읽기</p>
+                    <p><span class="text-red-400">10:30:02</span> ReplicaLag = 5초 → 아직 Replica에 미반영</p>
+                    <p><span class="text-red-400">결과:</span> "완료했는데 진도가 안 올라가요!" 문의 발생</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="success-box rounded-lg p-5">
+              <h4 class="font-semibold text-emerald-400 mb-2">해결 방법</h4>
+              <div class="text-sm text-gray-300 space-y-2">
+                <p><strong class="text-gray-100">1. Write-after-Read 패턴</strong></p>
+                <p class="text-gray-400 ml-4">쓰기 직후 읽기는 Primary에서, 이후 읽기는 Replica에서</p>
+                <p><strong class="text-gray-100 mt-3 block">2. Session Stickiness</strong></p>
+                <p class="text-gray-400 ml-4">사용자 세션 동안 같은 DB 엔드포인트 사용</p>
+                <p><strong class="text-gray-100 mt-3 block">3. ReplicaLag 모니터링</strong></p>
+                <p class="text-gray-400 ml-4">Lag > 1초 지속 시 알람 설정</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="tip-box rounded-lg p-5">
+            <h4 class="font-semibold text-yellow-400 mb-2">Tip: Replica 스펙 맞추기</h4>
+            <p class="text-sm text-gray-300">
+              ReplicaLag가 지속적으로 증가한다면, Replica 인스턴스 사양을 Primary와 동일하게 맞추세요.
+              비용을 아끼려고 Replica를 작은 인스턴스로 운영하면 복제가 따라잡지 못해 오히려 문제가 됩니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: Performance Insights -->
+      <section id="section-5" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+            <span class="text-violet-400 font-bold text-lg">5</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Performance Insights</h2>
+        </div>
+
+        <div class="space-y-8 text-gray-300 leading-relaxed">
+          <p>
+            Performance Insights는 RDS의 성능 병목을 시각적으로 분석할 수 있는 AWS의 강력한 도구입니다.
+            단순한 메트릭을 넘어, 어떤 쿼리가 문제를 일으키는지, 어떤 리소스에서 대기가 발생하는지 상세하게 보여줍니다.
+          </p>
+
+          <!-- DB Load Graph -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">DB Load 그래프</h3>
+            <p class="mb-4">
+              DB Load는 데이터베이스에서 동시에 활성화된 세션(Active Session) 수를 나타냅니다.
+              이 값이 인스턴스의 vCPU 수보다 높으면 일부 세션이 대기 상태에 있다는 의미입니다.
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+              <h4 class="font-semibold text-gray-100 mb-3">해석 예시</h4>
+              <div class="space-y-3 text-sm">
+                <div class="bg-gray-950 rounded-lg p-4">
+                  <p class="text-gray-400 mb-2">인스턴스: db.r5.xlarge (4 vCPU)</p>
+                  <div class="space-y-2">
+                    <p><span class="text-emerald-400">DB Load = 2</span> → 정상. 여유 있음</p>
+                    <p><span class="text-amber-400">DB Load = 4</span> → CPU 포화. 대기 시작 직전</p>
+                    <p><span class="text-red-400">DB Load = 12</span> → 3배 과부하. 8개 세션이 대기 중</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top SQL -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">Top SQL</h3>
+            <p class="mb-4">
+              데이터베이스에서 가장 많은 리소스(CPU, I/O, Lock 등)를 소비하는 쿼리를 순위별로 보여줍니다.
+              성능 최적화의 출발점은 항상 Top SQL 분석입니다.
+            </p>
+
+            <div class="info-box rounded-lg p-5">
+              <h4 class="font-semibold text-blue-400 mb-2">Top SQL에서 확인할 사항</h4>
+              <div class="text-sm text-gray-300 space-y-2">
+                <p>• 실행 횟수 (Executions): 얼마나 자주 호출되는가?</p>
+                <p>• 평균 지연 시간 (Average Latency): 한 번 실행에 걸리는 시간</p>
+                <p>• 총 DB Time: 실행 횟수 × 평균 지연 시간</p>
+                <p>• Wait Event 분포: CPU, IO, Lock 중 어디서 시간을 소비하는가?</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wait Events -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">Wait Events 분류</h3>
+            <p class="mb-4">
+              쿼리가 실행될 때 CPU 외의 리소스를 기다리는 이벤트를 Wait Event라고 합니다.
+              Wait Event 종류를 보면 성능 병목의 원인을 정확히 파악할 수 있습니다.
+            </p>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+              <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+                <h4 class="font-semibold text-gray-200 text-sm">주요 Wait Events</h4>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-gray-950">
+                      <th class="px-5 py-3 text-left text-gray-400 font-medium">카테고리</th>
+                      <th class="px-5 py-3 text-left text-gray-400 font-medium">Wait Event</th>
+                      <th class="px-5 py-3 text-left text-gray-400 font-medium">의미</th>
+                      <th class="px-5 py-3 text-left text-gray-400 font-medium">대응</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-800">
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-blue-400">CPU</td>
+                      <td class="px-5 py-3 text-cyan-400 font-mono text-xs">CPU</td>
+                      <td class="px-5 py-3 text-gray-300">쿼리 실행 중 CPU 사용</td>
+                      <td class="px-5 py-3 text-gray-400">쿼리 최적화, 인덱스</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-purple-400">IO</td>
+                      <td class="px-5 py-3 text-cyan-400 font-mono text-xs">IO:DataFileRead</td>
+                      <td class="px-5 py-3 text-gray-300">디스크에서 데이터 읽기</td>
+                      <td class="px-5 py-3 text-gray-400">메모리 증설, IOPS 증가</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-purple-400">IO</td>
+                      <td class="px-5 py-3 text-cyan-400 font-mono text-xs">IO:DataFileWrite</td>
+                      <td class="px-5 py-3 text-gray-300">디스크에 데이터 쓰기</td>
+                      <td class="px-5 py-3 text-gray-400">IOPS 증가, io2 전환</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-red-400">Lock</td>
+                      <td class="px-5 py-3 text-cyan-400 font-mono text-xs">Lock:wait</td>
+                      <td class="px-5 py-3 text-gray-300">행 잠금 대기</td>
+                      <td class="px-5 py-3 text-gray-400">트랜잭션 최적화, 락 범위 축소</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-red-400">Lock</td>
+                      <td class="px-5 py-3 text-cyan-400 font-mono text-xs">LWLock:BufferMapping</td>
+                      <td class="px-5 py-3 text-gray-300">버퍼 매핑 잠금</td>
+                      <td class="px-5 py-3 text-gray-400">메모리 증설</td>
+                    </tr>
+                    <tr class="hover:bg-gray-950/50">
+                      <td class="px-5 py-3 text-amber-400">Memory</td>
+                      <td class="px-5 py-3 text-cyan-400 font-mono text-xs">bufferpin:BufferPin</td>
+                      <td class="px-5 py-3 text-gray-300">버퍼 핀 대기</td>
+                      <td class="px-5 py-3 text-gray-400">shared_buffers 조정</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activation Guide -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-100 mb-4">Performance Insights 활성화 방법</h3>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <ol class="space-y-2 text-sm text-gray-400">
+                <li>1. RDS 콘솔에서 DB 인스턴스 선택</li>
+                <li>2. "Modify" 클릭</li>
+                <li>3. "Performance Insights" 섹션에서 "Enable Performance Insights" 체크</li>
+                <li>4. 보관 기간 선택 (7일 무료 / 25개월 유료)</li>
+                <li>5. "Continue" → "Apply immediately" → "Modify DB instance"</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="info-box rounded-lg p-5">
+            <h4 class="font-semibold text-blue-400 mb-2">비용 안내</h4>
+            <p class="text-sm text-gray-300">
+              Performance Insights는 7일 보관 기준으로 <strong class="text-gray-100">추가 비용 없이</strong> 사용할 수 있습니다.
+              25개월 장기 보관은 유료입니다. 대부분의 경우 7일 보관으로도 충분합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6: 실전 - DB 응답 지연 추적 -->
+      <section id="section-6" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <span class="text-emerald-400 font-bold text-lg">6</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">실전: DB 응답 지연 추적 워크스루</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            실제 장애 상황을 시뮬레이션하여 RDS 메트릭 분석 전체 프로세스를 경험해봅시다.
+          </p>
+
+          <div class="warning-box rounded-lg p-5">
+            <h4 class="font-semibold text-red-400 mb-2">시나리오: API 타임아웃 증가 알림 수신</h4>
+            <p class="text-sm text-gray-300">
+              오전 10시 30분, Datadog에서 API 응답 시간 P99가 5초를 초과했다는 알림을 받았습니다.
+              사용자들이 앱이 느리다는 문의를 하기 시작했습니다. 어떻게 추적할까요?
+            </p>
+          </div>
+
+          <!-- Step-by-step Walkthrough -->
+          <div class="space-y-4">
+            <!-- Step 1 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center text-blue-400 font-bold flex-shrink-0">1</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6 flex-1">
+                <h4 class="font-semibold text-blue-400 mb-2">CloudWatch 알람 확인</h4>
+                <p class="text-sm text-gray-400 mb-3">
+                  RDS CloudWatch 알람 히스토리를 확인합니다.
+                </p>
+                <div class="bg-gray-950 rounded-lg p-4 text-sm">
+                  <p class="text-amber-400 font-mono">⚠ ALARM: RDS-CPUUtilization-High</p>
+                  <p class="text-gray-500 mt-2">Threshold: CPUUtilization &gt; 80% for 5 minutes</p>
+                  <p class="text-gray-500">State changed at: 2025-01-15 10:30:00 UTC</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">2</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6 flex-1">
+                <h4 class="font-semibold text-purple-400 mb-2">CloudWatch 대시보드 분석</h4>
+                <p class="text-sm text-gray-400 mb-3">
+                  CPU 그래프를 열어 시간대별 추이를 확인합니다.
+                </p>
+                <div class="bg-gray-950 rounded-lg p-4 text-sm text-gray-400">
+                  <p>📊 CPU Utilization Graph</p>
+                  <p class="mt-2">10:00 - 10:25: 30-40% (정상)</p>
+                  <p>10:30 - 10:45: <span class="text-red-400 font-bold">85-92%</span> (급증!)</p>
+                  <p class="text-gray-600 mt-2">→ 10:30부터 갑자기 CPU가 치솟았음</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-cyan-500/20 border-2 border-cyan-500 flex items-center justify-center text-cyan-400 font-bold flex-shrink-0">3</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6 flex-1">
+                <h4 class="font-semibold text-cyan-400 mb-2">Performance Insights 열기</h4>
+                <p class="text-sm text-gray-400 mb-3">
+                  RDS 콘솔 → Performance Insights로 이동하여 DB Load 확인
+                </p>
+                <div class="bg-gray-950 rounded-lg p-4 text-sm text-gray-400">
+                  <p>📈 DB Load: <span class="text-red-400 font-bold">12</span></p>
+                  <p>vCPU: 4</p>
+                  <p class="text-red-400 mt-2">→ DB Load가 vCPU의 3배! 심각한 과부하</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-amber-400 font-bold flex-shrink-0">4</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6 flex-1">
+                <h4 class="font-semibold text-amber-400 mb-2">Top SQL 확인</h4>
+                <p class="text-sm text-gray-400 mb-3">
+                  Performance Insights에서 가장 많은 DB Time을 소비하는 쿼리 확인
+                </p>
+                <div class="bg-gray-950 rounded-lg p-4">
+                  <pre class="text-xs text-gray-400"><code class="language-sql">SELECT * FROM study_activity_instances
+WHERE created_at > '2025-01-01'
+ORDER BY created_at DESC;</code></pre>
+                  <p class="text-sm text-red-400 mt-3">⚠ 이 쿼리가 DB Time의 67%를 차지함</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-orange-500/20 border-2 border-orange-500 flex items-center justify-center text-orange-400 font-bold flex-shrink-0">5</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6 flex-1">
+                <h4 class="font-semibold text-orange-400 mb-2">EXPLAIN 실행</h4>
+                <p class="text-sm text-gray-400 mb-3">
+                  문제 쿼리를 EXPLAIN으로 분석하여 실행 계획 확인
+                </p>
+                <div class="bg-gray-950 rounded-lg p-4">
+                  <pre class="text-xs text-gray-400"><code class="language-sql">EXPLAIN SELECT * FROM study_activity_instances
+WHERE created_at > '2025-01-01'
+ORDER BY created_at DESC;</code></pre>
+                  <div class="mt-3 text-xs text-gray-400 font-mono">
+                    <p>type: <span class="text-red-400">ALL</span> (풀 테이블 스캔!)</p>
+                    <p>rows: <span class="text-red-400">257,000,000</span></p>
+                    <p>key: <span class="text-red-400">NULL</span> (인덱스 미사용)</p>
+                  </div>
+                  <p class="text-sm text-red-400 mt-3">🔥 2.5억 건을 풀 스캔 → 인덱스 누락!</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 font-bold flex-shrink-0">6</div>
+                <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+              </div>
+              <div class="pb-6 flex-1">
+                <h4 class="font-semibold text-emerald-400 mb-2">해결: 인덱스 추가</h4>
+                <p class="text-sm text-gray-400 mb-3">
+                  created_at 컬럼에 인덱스를 추가하여 풀 스캔 방지
+                </p>
+                <div class="bg-gray-950 rounded-lg p-4">
+                  <pre class="text-xs text-emerald-400"><code class="language-sql">CREATE INDEX idx_sai_created_at
+ON study_activity_instances(created_at);</code></pre>
+                  <p class="text-sm text-gray-500 mt-3">인덱스 생성 시간: 약 5분 (백그라운드)</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 7 -->
+            <div class="flex gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center text-green-400 font-bold flex-shrink-0">7</div>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-green-400 mb-2">결과 확인</h4>
+                <p class="text-sm text-gray-400 mb-3">
+                  CloudWatch와 Performance Insights에서 개선 확인
+                </p>
+                <div class="bg-gray-950 rounded-lg p-4 text-sm text-gray-400">
+                  <p class="text-emerald-400">✓ CPU Utilization: 85% → <strong>15%</strong></p>
+                  <p class="text-emerald-400">✓ DB Load: 12 → <strong>2</strong></p>
+                  <p class="text-emerald-400">✓ API P99 Latency: 5000ms → <strong>150ms</strong></p>
+                  <p class="text-gray-500 mt-3">→ 문제 해결! 사용자 문의 중단</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="success-box rounded-lg p-5">
+            <h4 class="font-semibold text-emerald-400 mb-2">학습 포인트</h4>
+            <p class="text-sm text-gray-300">
+              <strong class="text-gray-100">Performance Insights → Top SQL → EXPLAIN</strong> 순서로 추적하면 대부분의 DB 성능 문제를 해결할 수 있습니다.
+              메트릭만 보지 말고, 실제로 어떤 쿼리가 문제인지 파고들어야 근본 원인을 찾을 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quiz Section -->
+      <section id="quiz" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">퀴즈</h2>
+        </div>
+
+        <p class="text-gray-400 text-sm mb-6">
+          학습한 내용을 확인해봅시다. 5문제를 모두 풀어보세요.
+        </p>
+
+        <div id="quiz-container">
+          <!-- Quiz questions will be rendered here by QuizEngine -->
+        </div>
+      </section>
+
+      <!-- Bottom Navigation -->
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <!-- Complete Button -->
+        <div class="flex justify-center mb-8">
+          <button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950">
+            학습 완료
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between">
+          <a href="2-datadog-rum.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Module 2: Datadog RUM
+          </a>
+          <a href="4-kubernetes-monitoring.html" class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+            Module 4: Kubernetes
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="../js/progress.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    // ===== Quiz Initialization =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const questions = [
+        {
+          type: 'choice',
+          question: 'AWS RDS에서 gp3 볼륨의 기본 제공 IOPS는?',
+          options: ['100 IOPS', '1,000 IOPS', '3,000 IOPS', '16,000 IOPS'],
+          answer: 2,
+          explanation: 'gp3 볼륨은 기본 3,000 IOPS를 제공하며, 최대 16,000 IOPS까지 프로비저닝할 수 있습니다.'
+        },
+        {
+          type: 'choice',
+          question: 'RDS Performance Insights에서 DB Load가 vCPU 수보다 높을 때 의미하는 것은?',
+          options: ['데이터베이스가 정상 동작 중이다', '쿼리가 대기(wait) 상태에 있다', '복제가 지연되고 있다', '디스크 공간이 부족하다'],
+          answer: 1,
+          explanation: 'DB Load가 vCPU 수를 초과하면 일부 세션이 CPU, IO, Lock 등의 리소스를 기다리며 대기하고 있다는 의미입니다.'
+        },
+        {
+          type: 'choice',
+          question: 'DiskQueueDepth가 지속적으로 1 이상일 때 가장 적절한 대응은?',
+          options: ['읽기 복제본 추가', 'IOPS 프로비저닝 증가', '커넥션 풀 크기 조정', 'max_connections 증가'],
+          answer: 1,
+          explanation: 'DiskQueueDepth가 높다는 것은 디스크 I/O 요청이 처리 속도보다 빠르게 쌓이고 있다는 의미입니다. IOPS를 증가시켜 처리 능력을 높여야 합니다.'
+        },
+        {
+          type: 'choice',
+          question: 'Read Replica의 ReplicaLag가 지속적으로 증가하는 원인으로 가장 가능성이 높은 것은?',
+          options: ['Primary의 읽기 부하가 높다', 'Primary의 쓰기 부하가 Replica 적용 속도보다 크다', 'Replica의 IOPS가 부족하다', 'max_connections에 도달했다'],
+          answer: 1,
+          explanation: 'ReplicaLag는 Primary의 변경사항을 Replica가 적용하는 데 걸리는 지연입니다. Primary의 쓰기 속도가 Replica의 적용 속도를 초과하면 Lag가 증가합니다.'
+        },
+        {
+          type: 'short',
+          question: 'RDS에서 어떤 쿼리가 가장 많은 리소스를 소비하는지 확인할 수 있는 AWS 기능의 이름은? (영어)',
+          answer: 'Performance Insights',
+          explanation: 'Performance Insights는 RDS의 성능 모니터링 도구로, DB Load, Top SQL, Wait Events를 시각화하여 성능 병목을 찾을 수 있습니다.'
+        }
+      ];
+
+      if (typeof QuizEngine !== 'undefined') {
+        QuizEngine.init('quiz-container', questions, 'module3');
+      }
+
+      // Update completion button state
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module3')) {
+        markButtonComplete();
+      }
+
+      // Initialize sidebar active states
+      initSidebar();
+    });
+
+    // ===== Complete Button Handler =====
+    function handleComplete() {
+      if (typeof ProgressTracker !== 'undefined') {
+        ProgressTracker.markComplete('module3');
+      }
+      markButtonComplete();
+    }
+
+    function markButtonComplete() {
+      var btn = document.getElementById('complete-btn');
+      if (btn) {
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'completed');
+        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>학습 완료됨';
+      }
+    }
+
+    // ===== Sidebar Navigation =====
+    function initSidebar() {
+      var sections = document.querySelectorAll('section[id]');
+      var sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+      // Intersection observer for active section tracking
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            sidebarLinks.forEach(function(link) {
+              link.classList.remove('active');
+              if (link.getAttribute('data-section') === id) {
+                link.classList.add('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-20% 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+
+      // Sidebar link click -> close mobile sidebar
+      sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var sidebar = document.getElementById('sidebar');
+          if (window.innerWidth < 1024) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    // ===== Progress Tracking =====
+    function updateProgress() {
+      var totalSections = 7;
+      var completed = 0;
+      for (var i = 1; i <= 6; i++) {
+        var check = document.getElementById('check-section-' + i);
+        if (check && check.classList.contains('done')) completed++;
+      }
+      var quizCheck = document.getElementById('check-quiz');
+      if (quizCheck && quizCheck.classList.contains('done')) completed++;
+
+      var percent = Math.round((completed / totalSections) * 100);
+      var bar = document.getElementById('progress-bar');
+      var percentText = document.getElementById('progress-percent');
+      if (bar) bar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+    }
+  </script>
+</body>
+</html>

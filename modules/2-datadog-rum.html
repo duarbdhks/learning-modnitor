@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 2: Datadog RUM &amp; 프론트엔드 지표 | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/auth.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+              900: '#111118',
+              850: '#16161f',
+              800: '#1e1e2a',
+              700: '#2a2a3a',
+              600: '#3a3a4d',
+              400: '#8888a0',
+              300: '#a0a0b8',
+              200: '#c0c0d0',
+              100: '#e0e0ea',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .info-box { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .tip-box { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.08); }
+    .warning-box { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .success-box { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.08); }
+    .sidebar-link.active { color: #60a5fa; border-left-color: #3b82f6; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { color: #93c5fd; border-left-color: #60a5fa; }
+    pre[class*="language-"] { border-radius: 0.5rem; margin: 1rem 0; }
+    .quiz-option { transition: all 0.2s; }
+    .quiz-option:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+    .quiz-option.correct { background: rgba(34, 197, 94, 0.15); border-color: #22c55e; }
+    .quiz-option.incorrect { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; }
+    .comparison-card { transition: transform 0.2s; }
+    .comparison-card:hover { transform: translateY(-2px); }
+    .cwv-table { font-size: 0.875rem; }
+    .cwv-good { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .cwv-needs { background: rgba(234, 179, 8, 0.1); color: #eab308; }
+    .cwv-poor { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    @media (max-width: 1023px) {
+      .sidebar-toggle-target { display: none; }
+      .sidebar-toggle-target.open { display: block; }
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          홈으로
+        </a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div>
+          <span class="text-blue-400 text-xs font-semibold tracking-wider uppercase">Module 2</span>
+          <h1 class="text-lg sm:text-xl font-bold text-gray-100">Datadog RUM &amp; 프론트엔드 성능 지표</h1>
+        </div>
+      </div>
+      <!-- Mobile sidebar toggle -->
+      <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+
+    <!-- Sidebar TOC -->
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">목차</h3>
+        <ul class="space-y-1">
+          <li>
+            <a href="#section-1" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-1">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-1"></span>
+              RUM이란?
+            </a>
+          </li>
+          <li>
+            <a href="#section-2" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-2">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-2"></span>
+              Core Web Vitals
+            </a>
+          </li>
+          <li>
+            <a href="#section-3" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-3">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-3"></span>
+              p99 레이턴시 이해
+            </a>
+          </li>
+          <li>
+            <a href="#section-4" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-4">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-4"></span>
+              에러 추적 &amp; 세션 분석
+            </a>
+          </li>
+          <li>
+            <a href="#section-5" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-5">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-section-5"></span>
+              실전: RUM 추적 워크스루
+            </a>
+          </li>
+          <li>
+            <a href="#quiz" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="quiz">
+              <span class="section-check w-4 h-4 rounded-full border border-gray-700 flex-shrink-0 flex items-center justify-center text-xs" id="check-quiz"></span>
+              퀴즈
+            </a>
+          </li>
+        </ul>
+        <!-- Progress indicator -->
+        <div class="mt-6 pt-4 border-t border-gray-800">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>진행률</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="w-full bg-gray-800 rounded-full h-1.5">
+            <div id="progress-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0">
+
+      <!-- Section 1: RUM이란? -->
+      <section id="section-1" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <span class="text-blue-400 font-bold text-lg">1</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">RUM이란?</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            <strong class="text-blue-400">RUM(Real User Monitoring)</strong>은 실제 사용자의 브라우저에서 수집하는 성능 데이터입니다.
+            서버에서는 API가 200ms에 응답했다고 보이지만, 사용자의 브라우저에서는 3초 이상 걸릴 수 있습니다.
+            RUM은 이런 <strong class="text-gray-100">"실제 사용자가 겪는 경험"</strong>을 측정합니다.
+          </p>
+
+          <!-- RUM vs Synthetic Monitoring 비교 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+              <h4 class="font-semibold text-gray-200 text-sm">RUM vs Synthetic Monitoring</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium"></th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">RUM</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">Synthetic</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-400 font-medium">데이터 소스</td>
+                    <td class="px-5 py-3 text-emerald-400">실제 사용자</td>
+                    <td class="px-5 py-3 text-orange-400">시뮬레이션 봇</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-400 font-medium">커버리지</td>
+                    <td class="px-5 py-3 text-emerald-400">모든 페이지, 모든 환경</td>
+                    <td class="px-5 py-3 text-orange-400">설정한 시나리오만</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-400 font-medium">네트워크 조건</td>
+                    <td class="px-5 py-3 text-emerald-400">다양 (3G~WiFi)</td>
+                    <td class="px-5 py-3 text-orange-400">일정</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-400 font-medium">비용</td>
+                    <td class="px-5 py-3 text-gray-300">트래픽 비례</td>
+                    <td class="px-5 py-3 text-gray-300">테스트 수 비례</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-gray-400 font-medium">장점</td>
+                    <td class="px-5 py-3 text-emerald-400">실제 사용자 경험 반영</td>
+                    <td class="px-5 py-3 text-orange-400">일관된 기준선 제공</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Datadog RUM SDK 설치 -->
+          <h3 class="text-lg font-bold text-gray-100 mt-8 mb-4">Datadog RUM SDK 설치</h3>
+          <p class="text-sm text-gray-400 mb-3">
+            Datadog RUM을 사용하려면 애플리케이션에 SDK를 설치하고 초기화해야 합니다.
+          </p>
+
+          <pre class="bg-gray-950 rounded-lg p-4"><code class="language-javascript">// npm 설치
+npm install @datadog/browser-rum
+
+// 초기화
+import { datadogRum } from '@datadog/browser-rum';
+
+datadogRum.init({
+  applicationId: 'YOUR_APPLICATION_ID',
+  clientToken: 'YOUR_CLIENT_TOKEN',
+  site: 'datadoghq.com',
+  service: 'my-web-app',
+  env: 'production',
+  version: '1.0.0',
+  sessionSampleRate: 100, // 100% 세션 샘플링
+  sessionReplaySampleRate: 20, // 20% 세션 리플레이
+  trackUserInteractions: true,
+  trackResources: true,
+  trackLongTasks: true,
+  defaultPrivacyLevel: 'mask-user-input'
+});</code></pre>
+
+          <div class="info-box rounded-lg p-5 mt-6">
+            <h4 class="font-semibold text-blue-400 mb-2">핵심 포인트</h4>
+            <p class="text-sm text-gray-300">
+              RUM은 '실제로 사용자가 겪는 경험'을 측정합니다. 서버에서는 200ms면 빠르다고 생각하지만,
+              사용자 브라우저에서는 네트워크 지연, 느린 단말기, 브라우저 렌더링 시간 등으로 인해 3초 이상 걸릴 수 있습니다.
+              따라서 백엔드 성능 지표만으로는 사용자 경험을 온전히 파악할 수 없습니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Core Web Vitals -->
+      <section id="section-2" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+            <span class="text-purple-400 font-bold text-lg">2</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">Core Web Vitals 깊이 읽기</h2>
+        </div>
+
+        <p class="text-gray-300 leading-relaxed mb-8">
+          Google이 정의한 <strong class="text-purple-400">Core Web Vitals</strong>는 웹 사용자 경험의 핵심 지표입니다.
+          로딩 성능, 인터랙티브성, 시각적 안정성 세 가지 측면을 측정합니다.
+        </p>
+
+        <!-- LCP -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-emerald-400">1.</span> LCP (Largest Contentful Paint)
+          </h3>
+          <p class="text-gray-300 mb-4">
+            페이지에서 <strong class="text-gray-100">가장 큰 콘텐츠가 렌더링되는 시간</strong>입니다.
+            일반적으로 히어로 이미지, 제목, 비디오 등이 LCP 요소가 됩니다.
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+            <h4 class="font-semibold text-gray-200 mb-3">LCP 임계값</h4>
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-good">Good</span>
+                <span class="text-gray-300">&lt; 2.5초</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-needs">Needs Improvement</span>
+                <span class="text-gray-300">2.5초 ~ 4.0초</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-poor">Poor</span>
+                <span class="text-gray-300">&gt; 4.0초</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">LCP 개선 방법</h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 mt-0.5">&#8250;</span>
+                이미지 최적화: WebP 포맷 사용, 압축, lazy loading
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 mt-0.5">&#8250;</span>
+                서버 응답 시간 단축: CDN 활용, 캐싱, 데이터베이스 최적화
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 mt-0.5">&#8250;</span>
+                렌더 블로킹 리소스 제거: CSS/JS 비동기 로딩, 인라인 critical CSS
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-500 mt-0.5">&#8250;</span>
+                리소스 우선순위 설정: &lt;link rel="preload"&gt; 활용
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- INP -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-blue-400">2.</span> INP (Interaction to Next Paint)
+          </h3>
+          <p class="text-gray-300 mb-4">
+            사용자가 <strong class="text-gray-100">인터랙션(클릭, 탭, 키보드 입력)한 후 다음 페인트까지의 시간</strong>입니다.
+            2024년 3월부터 FID(First Input Delay)를 대체하여 Core Web Vitals의 공식 지표가 되었습니다.
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+            <h4 class="font-semibold text-gray-200 mb-3">INP 임계값</h4>
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-good">Good</span>
+                <span class="text-gray-300">&lt; 200ms</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-needs">Needs Improvement</span>
+                <span class="text-gray-300">200ms ~ 500ms</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-poor">Poor</span>
+                <span class="text-gray-300">&gt; 500ms</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">INP 개선 방법</h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li class="flex items-start gap-2">
+                <span class="text-blue-500 mt-0.5">&#8250;</span>
+                긴 JavaScript 작업 분할: 50ms 이상 작업을 여러 청크로 나눔
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-blue-500 mt-0.5">&#8250;</span>
+                이벤트 핸들러 최적화: debounce, throttle 기법 적용
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-blue-500 mt-0.5">&#8250;</span>
+                Web Worker 활용: 무거운 연산을 백그라운드로 이동
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-blue-500 mt-0.5">&#8250;</span>
+                Third-party 스크립트 최소화: 불필요한 외부 라이브러리 제거
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CLS -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-gray-100 mb-4 flex items-center gap-2">
+            <span class="text-pink-400">3.</span> CLS (Cumulative Layout Shift)
+          </h3>
+          <p class="text-gray-300 mb-4">
+            페이지 로드 중 <strong class="text-gray-100">예상치 못한 레이아웃 이동 정도</strong>를 측정합니다.
+            이미지가 로드되면서 텍스트가 밀리거나, 광고가 삽입되면서 버튼이 이동하는 등의 현상을 수치화합니다.
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+            <h4 class="font-semibold text-gray-200 mb-3">CLS 임계값</h4>
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-good">Good</span>
+                <span class="text-gray-300">&lt; 0.1</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-needs">Needs Improvement</span>
+                <span class="text-gray-300">0.1 ~ 0.25</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-3 py-1 rounded-md text-sm font-semibold cwv-poor">Poor</span>
+                <span class="text-gray-300">&gt; 0.25</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">CLS 개선 방법</h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li class="flex items-start gap-2">
+                <span class="text-pink-500 mt-0.5">&#8250;</span>
+                이미지/영상에 width, height 속성 명시
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-pink-500 mt-0.5">&#8250;</span>
+                동적 콘텐츠(광고, 배너)를 위한 공간 미리 확보
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-pink-500 mt-0.5">&#8250;</span>
+                폰트 로딩 전략: font-display: swap 사용
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-pink-500 mt-0.5">&#8250;</span>
+                기존 콘텐츠 위에 새 콘텐츠를 삽입하지 않기
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CWV 종합 테이블 -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+            <h4 class="font-semibold text-gray-200 text-sm">Core Web Vitals 종합</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full cwv-table">
+              <thead>
+                <tr class="bg-gray-950">
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">지표</th>
+                  <th class="px-5 py-3 text-left text-gray-400 font-medium">측정 대상</th>
+                  <th class="px-5 py-3 text-center text-emerald-400 font-medium">Good</th>
+                  <th class="px-5 py-3 text-center text-yellow-400 font-medium">Needs Improvement</th>
+                  <th class="px-5 py-3 text-center text-red-400 font-medium">Poor</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-800">
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-emerald-400 font-semibold">LCP</td>
+                  <td class="px-5 py-3 text-gray-300">로딩 성능</td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-good px-2 py-1 rounded">&lt; 2.5s</span></td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-needs px-2 py-1 rounded">2.5s - 4.0s</span></td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-poor px-2 py-1 rounded">&gt; 4.0s</span></td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-blue-400 font-semibold">INP</td>
+                  <td class="px-5 py-3 text-gray-300">인터랙티브성</td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-good px-2 py-1 rounded">&lt; 200ms</span></td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-needs px-2 py-1 rounded">200ms - 500ms</span></td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-poor px-2 py-1 rounded">&gt; 500ms</span></td>
+                </tr>
+                <tr class="hover:bg-gray-950/50">
+                  <td class="px-5 py-3 text-pink-400 font-semibold">CLS</td>
+                  <td class="px-5 py-3 text-gray-300">시각적 안정성</td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-good px-2 py-1 rounded">&lt; 0.1</span></td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-needs px-2 py-1 rounded">0.1 - 0.25</span></td>
+                  <td class="px-5 py-3 text-center"><span class="cwv-poor px-2 py-1 rounded">&gt; 0.25</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="warning-box rounded-lg p-5 mt-6">
+          <h4 class="font-semibold text-red-400 mb-2">SEO 영향</h4>
+          <p class="text-sm text-gray-300">
+            CWV는 Google 검색 순위에도 영향을 미칩니다. 2021년 6월부터 페이지 경험(Page Experience)이 공식 랭킹 요소가 되었으며,
+            CWV는 그 핵심 지표입니다. 따라서 SEO 관점에서도 매우 중요한 지표입니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- Section 3: p99 레이턴시 이해 -->
+      <section id="section-3" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+            <span class="text-cyan-400 font-bold text-lg">3</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">p99/p95/p50 레이턴시 이해</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            퍼센타일(Percentile)은 데이터를 정렬했을 때 <strong class="text-gray-100">특정 비율의 사용자가 경험하는 값</strong>을 의미합니다.
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">퍼센타일의 의미</h4>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start gap-3">
+                <span class="text-cyan-400 font-semibold w-12 flex-shrink-0">p50:</span>
+                <span class="text-gray-300">중앙값. 50%의 사용자가 이 시간 안에 응답을 받음</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-yellow-400 font-semibold w-12 flex-shrink-0">p95:</span>
+                <span class="text-gray-300">상위 5%를 제외한 95%의 사용자가 이 시간 안에 응답을 받음</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-red-400 font-semibold w-12 flex-shrink-0">p99:</span>
+                <span class="text-gray-300">상위 1%를 제외한 99%의 사용자가 이 시간 안에 응답을 받음</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 평균의 함정 -->
+          <h3 class="text-xl font-bold text-gray-100 mt-8 mb-4">평균의 함정 (매우 중요한 개념)</h3>
+          <p class="text-gray-400 mb-4">
+            평균은 이상치(outlier)에 민감하여 실제 사용자 경험을 왜곡할 수 있습니다. 다음 예시를 살펴보세요.
+          </p>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
+            <h4 class="font-semibold text-gray-200 mb-3">예시 데이터셋 (10개 요청, 단위: ms)</h4>
+            <div class="bg-gray-950 rounded-lg p-4 font-mono text-sm mb-4">
+              <div class="text-gray-400">50, 52, 48, 55, 51, 49, 53, 47, 54, <span class="text-red-400 font-bold">2500</span></div>
+            </div>
+
+            <div class="grid sm:grid-cols-3 gap-4 mb-4">
+              <div class="bg-gray-950 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500 mb-1">평균</div>
+                <div class="text-2xl font-bold text-yellow-400">296ms</div>
+                <div class="text-xs text-gray-600 mt-1">(괜찮아 보임)</div>
+              </div>
+              <div class="bg-gray-950 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500 mb-1">p50 (중앙값)</div>
+                <div class="text-2xl font-bold text-cyan-400">52ms</div>
+                <div class="text-xs text-gray-600 mt-1">(실제 대다수 경험)</div>
+              </div>
+              <div class="bg-gray-950 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500 mb-1">p99</div>
+                <div class="text-2xl font-bold text-red-400">2500ms</div>
+                <div class="text-xs text-gray-600 mt-1">(1명이 극심한 지연)</div>
+              </div>
+            </div>
+
+            <div class="bg-gray-950 rounded-lg p-4 font-mono text-xs">
+              <div class="text-gray-500 mb-2">응답시간 분포 (10 requests)</div>
+              <div class="text-emerald-400">0-100ms:  |████████████████████████████████████| 9 (90%)</div>
+              <div class="text-gray-600">100-500ms:|                                    | 0</div>
+              <div class="text-red-400">500ms+:   |████                                | 1 (10%)</div>
+              <div class="text-gray-500 mt-3">평균: 296ms  p50: 52ms  p99: 2500ms</div>
+            </div>
+
+            <p class="text-sm text-gray-400 mt-4">
+              평균(296ms)만 보면 괜찮아 보이지만, 실제로는 90%의 사용자는 52ms에 응답을 받고,
+              10%의 사용자는 2.5초나 걸립니다. <strong class="text-red-400">평균은 이 극단적인 차이를 숨깁니다.</strong>
+            </p>
+          </div>
+
+          <!-- 왜 p99가 중요한가 -->
+          <h3 class="text-xl font-bold text-gray-100 mb-4">왜 p99가 중요한가?</h3>
+
+          <div class="space-y-4 mb-6">
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h4 class="font-semibold text-gray-200 mb-3 flex items-center gap-2">
+                <span class="text-red-400">1.</span> 1%는 무시할 수 없는 숫자
+              </h4>
+              <p class="text-sm text-gray-400 mb-2">
+                하루 100만 요청이 발생하는 서비스에서 1%는 <strong class="text-red-400">1만 건</strong>입니다.
+                1만 명의 사용자가 느린 응답을 경험하면 그것은 결코 작은 문제가 아닙니다.
+              </p>
+            </div>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h4 class="font-semibold text-gray-200 mb-3 flex items-center gap-2">
+                <span class="text-red-400">2.</span> 파워 유저가 p99에 해당
+              </h4>
+              <p class="text-sm text-gray-400 mb-2">
+                많은 요청을 보내는 파워 유저일수록 지연을 경험할 확률이 높습니다.
+                이들은 보통 가장 중요한 고객이므로, 이들의 경험을 무시하면 비즈니스에 큰 타격을 입습니다.
+              </p>
+            </div>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h4 class="font-semibold text-gray-200 mb-3 flex items-center gap-2">
+                <span class="text-red-400">3.</span> 마이크로서비스에서 p99 전파
+              </h4>
+              <p class="text-sm text-gray-400 mb-3">
+                각 서비스의 p99가 100ms라고 가정할 때, 10개 서비스를 거치는 요청의 경우:
+              </p>
+              <div class="bg-gray-950 rounded-lg p-3 font-mono text-sm mb-3">
+                <div class="text-gray-400">모든 서비스가 p99 안에 들 확률: <span class="text-cyan-400">0.99^10 = 90.4%</span></div>
+                <div class="text-gray-400 mt-1">어느 한 서비스에서 지연 경험: <span class="text-red-400">9.6% ≈ 10%</span></div>
+              </div>
+              <p class="text-sm text-gray-400">
+                즉, 10개 서비스를 거치면 <strong class="text-red-400">약 10%의 요청이 지연을 겪습니다.</strong>
+                서비스가 늘어날수록 p99는 더욱 중요해집니다.
+              </p>
+            </div>
+          </div>
+
+          <!-- Datadog RUM에서 p99 조회 -->
+          <h3 class="text-xl font-bold text-gray-100 mb-4">Datadog RUM에서 p99 조회</h3>
+
+          <pre class="bg-gray-950 rounded-lg p-4 mb-4"><code class="language-bash"># RUM 쿼리 예시: /checkout 페이지의 로딩 시간
+@type:view @view.url_path:/checkout</code></pre>
+
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h4 class="font-semibold text-gray-200 mb-3">그래프 설정: p50, p95, p99 비교</h4>
+            <p class="text-sm text-gray-400 mb-3">
+              Datadog RUM Dashboard에서 "Loading Time" 지표를 선택하고, 다음과 같이 퍼센타일을 추가할 수 있습니다.
+            </p>
+            <div class="bg-gray-950 rounded-lg p-3 font-mono text-xs space-y-1">
+              <div><span class="text-cyan-400">p50</span> (median): 대다수 사용자 경험</div>
+              <div><span class="text-yellow-400">p95</span>: 상위 5% 제외</div>
+              <div><span class="text-red-400">p99</span>: 상위 1% 제외</div>
+            </div>
+          </div>
+
+          <div class="tip-box rounded-lg p-5 mt-6">
+            <h4 class="font-semibold text-yellow-400 mb-2">Tip: SLO는 평균이 아닌 p99 기준으로</h4>
+            <p class="text-sm text-gray-300">
+              SLO(Service Level Objective)를 설정할 때 평균이 아닌 p99를 기준으로 하세요.
+              "평균 응답시간 200ms 이하"보다 "p99 응답시간 500ms 이하"가 훨씬 의미 있는 목표입니다.
+              평균은 outlier를 숨기지만, p99는 최악의 사용자 경험까지 고려합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: 에러 추적 & 세션 분석 -->
+      <section id="section-4" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+            <span class="text-red-400 font-bold text-lg">4</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">에러 추적 &amp; 세션 분석</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>
+            Datadog RUM은 성능 지표뿐만 아니라 <strong class="text-gray-100">에러 추적</strong>과 <strong class="text-gray-100">세션 분석</strong>도 제공합니다.
+            사용자가 겪는 모든 에러를 자동으로 수집하고, Session Replay를 통해 문제 상황을 재현할 수 있습니다.
+          </p>
+
+          <!-- JS Error Rate -->
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">1. JavaScript Error Rate</h3>
+            <p class="text-sm text-gray-400 mb-3">
+              브라우저에서 발생하는 JavaScript 에러를 자동으로 수집합니다.
+            </p>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <ul class="space-y-2 text-sm">
+                <li class="flex items-start gap-2">
+                  <span class="text-red-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300"><code class="text-red-400 bg-gray-950 px-1.5 py-0.5 rounded text-xs">window.onerror</code>: 전역 에러 핸들러</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-red-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300"><code class="text-red-400 bg-gray-950 px-1.5 py-0.5 rounded text-xs">unhandledrejection</code>: Promise rejection 에러</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-red-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300">에러 스택 트레이스, 소스 맵 지원</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Resource Error -->
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">2. Resource Error</h3>
+            <p class="text-sm text-gray-400 mb-3">
+              네트워크 요청 실패, 리소스 로드 실패 등을 추적합니다.
+            </p>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <ul class="space-y-2 text-sm">
+                <li class="flex items-start gap-2">
+                  <span class="text-orange-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300">API 호출 실패 (4xx, 5xx 에러)</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-orange-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300">이미지, CSS, JS 파일 로드 실패</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-orange-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300">CORS 에러</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Long Task -->
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">3. Long Task</h3>
+            <p class="text-sm text-gray-400 mb-3">
+              50ms 이상 메인 스레드를 블로킹하는 작업을 자동으로 감지합니다.
+            </p>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <p class="text-sm text-gray-300 mb-3">
+                Long Task는 브라우저가 사용자 입력에 응답하지 못하게 만들어 INP 지표를 악화시킵니다.
+                Datadog RUM은 Long Task의 발생 빈도, 소요 시간, 발생 위치를 추적합니다.
+              </p>
+              <div class="bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-400">
+                Long Task Threshold: 50ms<br>
+                예시: 200ms 걸리는 JavaScript 함수 = 4x Long Task 임계값
+              </div>
+            </div>
+          </div>
+
+          <!-- Session Replay -->
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-gray-100 mb-4">4. Session Replay</h3>
+            <p class="text-sm text-gray-400 mb-3">
+              사용자 세션을 영상으로 재생하여 문제 상황을 정확히 재현할 수 있습니다.
+            </p>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <ul class="space-y-2 text-sm">
+                <li class="flex items-start gap-2">
+                  <span class="text-purple-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300">사용자의 모든 클릭, 스크롤, 입력을 기록</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-purple-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300">개인정보 보호: 민감한 입력은 자동 마스킹</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-purple-500 mt-0.5">&#8250;</span>
+                  <span class="text-gray-300">에러 발생 전후 맥락을 영상으로 확인</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- RUM 쿼리 예시 -->
+          <h3 class="text-xl font-bold text-gray-100 mb-4">Datadog RUM 쿼리 예시</h3>
+
+          <pre class="bg-gray-950 rounded-lg p-4 mb-4"><code class="language-bash"># /checkout 페이지의 모든 에러
+@type:error @error.source:source @view.url_path:/checkout
+
+# 특정 API 호출 실패
+@type:resource @resource.url:"/api/v1/payment/*" @resource.status_code:&gt;=500
+
+# Long Task 50ms 이상
+@type:long_task @long_task.duration:&gt;=50000000</code></pre>
+
+          <!-- 에러 분류 테이블 -->
+          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div class="px-5 py-3 bg-gray-900 border-b border-gray-800">
+              <h4 class="font-semibold text-gray-200 text-sm">에러 분류</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray-950">
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">에러 타입</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">설명</th>
+                    <th class="px-5 py-3 text-left text-gray-400 font-medium">예시</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-red-400 font-medium">Source Error</td>
+                    <td class="px-5 py-3 text-gray-300">JavaScript 런타임 에러</td>
+                    <td class="px-5 py-3 text-gray-500 font-mono text-xs">TypeError, ReferenceError</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-orange-400 font-medium">Network Error</td>
+                    <td class="px-5 py-3 text-gray-300">네트워크 요청 실패</td>
+                    <td class="px-5 py-3 text-gray-500 font-mono text-xs">fetch failed, 500 error</td>
+                  </tr>
+                  <tr class="hover:bg-gray-950/50">
+                    <td class="px-5 py-3 text-yellow-400 font-medium">Custom Error</td>
+                    <td class="px-5 py-3 text-gray-300">애플리케이션 정의 에러</td>
+                    <td class="px-5 py-3 text-gray-500 font-mono text-xs">datadogRum.addError()</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: 실전 워크스루 -->
+      <section id="section-5" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <span class="text-emerald-400 font-bold text-lg">5</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">실전: 사용자 불만 → RUM 추적 워크스루</h2>
+        </div>
+
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <div class="bg-gray-900 border border-yellow-800 rounded-xl p-5">
+            <h3 class="font-bold text-yellow-400 mb-2">시나리오</h3>
+            <p class="text-gray-300">
+              CS팀으로부터 "결제 페이지가 너무 느려요"라는 고객 불만이 접수되었습니다.
+              RUM 데이터를 활용하여 문제를 추적하고 원인을 찾아봅시다.
+            </p>
+          </div>
+
+          <!-- Step 1 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center text-blue-400 font-bold flex-shrink-0">1</div>
+              <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+            </div>
+            <div class="pb-6 flex-1">
+              <h4 class="font-semibold text-blue-400 mb-2">RUM Dashboard 열기 → /checkout 페이지 필터</h4>
+              <p class="text-sm text-gray-400 mb-3">
+                먼저 Datadog RUM Dashboard에서 Views 탭을 선택하고, /checkout 페이지만 필터링합니다.
+              </p>
+              <pre class="bg-gray-950 rounded-lg p-3 text-sm"><code class="language-bash">@type:view @view.url_path:/checkout</code></pre>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">2</div>
+              <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+            </div>
+            <div class="pb-6 flex-1">
+              <h4 class="font-semibold text-purple-400 mb-2">p99 Loading Time 시계열 확인 → 스파이크 발견</h4>
+              <p class="text-sm text-gray-400 mb-3">
+                "Loading Time" 지표를 선택하고 p99 그래프를 확인합니다.
+                특정 시간대에 급격한 스파이크가 발견됩니다.
+              </p>
+              <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                <div class="text-xs text-gray-500 mb-2">Loading Time Trend</div>
+                <div class="font-mono text-xs space-y-1">
+                  <div><span class="text-cyan-400">p50:</span> <span class="text-gray-400">800ms → 850ms (정상)</span></div>
+                  <div><span class="text-yellow-400">p95:</span> <span class="text-gray-400">2.1s → 2.3s (경미한 증가)</span></div>
+                  <div><span class="text-red-400">p99:</span> <span class="text-red-300">3.0s → 8.5s (급격한 증가!)</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-orange-500/20 border-2 border-orange-500 flex items-center justify-center text-orange-400 font-bold flex-shrink-0">3</div>
+              <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+            </div>
+            <div class="pb-6 flex-1">
+              <h4 class="font-semibold text-orange-400 mb-2">해당 시간대 세션 드릴다운 → Resource Waterfall 확인</h4>
+              <p class="text-sm text-gray-400 mb-3">
+                스파이크가 발생한 시간대의 세션을 클릭하여 상세 페이지로 이동합니다.
+                "Resources" 탭에서 Waterfall 차트를 확인합니다.
+              </p>
+              <div class="bg-gray-950 rounded-lg p-3 font-mono text-xs">
+                <div class="text-gray-500">Resource Waterfall (시간순)</div>
+                <div class="text-gray-400 mt-2">
+                  <div>app.js                   |██| 120ms</div>
+                  <div>styles.css               |█| 80ms</div>
+                  <div>/api/v1/user/profile     |██| 150ms</div>
+                  <div class="text-red-400">/api/v1/payment/validate |████████████████| 6.2s ← 문제!</div>
+                  <div>checkout-complete.png    |█| 90ms</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 border-2 border-cyan-500 flex items-center justify-center text-cyan-400 font-bold flex-shrink-0">4</div>
+              <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
+            </div>
+            <div class="pb-6 flex-1">
+              <h4 class="font-semibold text-cyan-400 mb-2">APM으로 전환 → 해당 API Trace 확인</h4>
+              <p class="text-sm text-gray-400 mb-3">
+                Waterfall에서 <code class="text-cyan-400 bg-gray-950 px-1.5 py-0.5 rounded text-xs">/api/v1/payment/validate</code> API가 6.2초 소요된 것을 확인했습니다.
+                이제 APM(Application Performance Monitoring)으로 전환하여 백엔드 trace를 분석합니다.
+              </p>
+              <div class="bg-gray-950 rounded-lg p-3 font-mono text-xs">
+                <div class="text-gray-500">Trace Breakdown</div>
+                <div class="text-gray-400 mt-2">
+                  <div>HTTP Handler              |█| 50ms</div>
+                  <div>Auth Middleware           |█| 30ms</div>
+                  <div class="text-yellow-400">DB Query 1 (user_tbl)     |██| 180ms</div>
+                  <div class="text-red-400">DB Query 2 (payment_hist) |████████████| 3.8s ← 인덱스 누락!</div>
+                  <div class="text-red-400">DB Query 3 (order_items)  |█████| 1.7s ← 인덱스 누락!</div>
+                  <div>Response Serialization   |█| 40ms</div>
+                  <div class="text-gray-500 mt-2">Total: 6.2s (대부분 DB 쿼리)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 font-bold flex-shrink-0">5</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="font-semibold text-emerald-400 mb-2">결론: 백엔드 DB 쿼리 최적화 필요</h4>
+              <p class="text-sm text-gray-400 mb-3">
+                RUM → APM → DB 순서로 추적한 결과, 문제의 원인은 <strong class="text-red-400">백엔드 데이터베이스 쿼리 최적화 부족</strong>이었습니다.
+              </p>
+              <div class="bg-gray-900 border border-emerald-800 rounded-xl p-4">
+                <h5 class="font-semibold text-emerald-400 mb-2">해결 방안</h5>
+                <ul class="space-y-2 text-sm text-gray-300">
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-500 mt-0.5">&#8250;</span>
+                    <code class="text-emerald-400 bg-gray-950 px-1.5 py-0.5 rounded text-xs">payment_hist</code> 테이블에 <code class="text-cyan-400 bg-gray-950 px-1.5 py-0.5 rounded text-xs">(user_id, created_at)</code> 복합 인덱스 추가
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-500 mt-0.5">&#8250;</span>
+                    <code class="text-emerald-400 bg-gray-950 px-1.5 py-0.5 rounded text-xs">order_items</code> 테이블에 <code class="text-cyan-400 bg-gray-950 px-1.5 py-0.5 rounded text-xs">order_id</code> 인덱스 추가
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-emerald-500 mt-0.5">&#8250;</span>
+                    쿼리 최적화 후 p99 Loading Time: 8.5s → 1.2s (86% 개선)
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="success-box rounded-lg p-5 mt-8">
+            <h4 class="font-semibold text-emerald-400 mb-2">핵심 인사이트</h4>
+            <p class="text-sm text-gray-300">
+              <strong>RUM → APM → DB</strong> 순서로 추적하면 프론트엔드 문제인지 백엔드 문제인지 빠르게 판별할 수 있습니다.
+              만약 RUM Waterfall에서 API 응답 시간이 정상이지만 LCP가 느리다면 프론트엔드 렌더링 문제입니다.
+              반대로 이번 케이스처럼 API 응답 시간이 느리다면 백엔드 문제입니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quiz Section -->
+      <section id="quiz" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">퀴즈</h2>
+        </div>
+
+        <p class="text-gray-400 text-sm mb-6">
+          학습한 내용을 확인해봅시다. 5문제를 모두 풀어보세요.
+        </p>
+
+        <div id="quiz-container">
+          <!-- Quiz questions will be rendered here by QuizEngine -->
+        </div>
+      </section>
+
+      <!-- Bottom Navigation -->
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <!-- Complete Button -->
+        <div class="flex justify-center mb-8">
+          <button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950">
+            학습 완료
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between">
+          <a href="1-reliability-fundamentals.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Module 1: 서비스 신뢰성 지표
+          </a>
+          <a href="3-aws-rds-metrics.html" class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+            Module 3: AWS RDS
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="../js/progress.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    // ===== Quiz Initialization =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const questions = [
+        {
+          type: 'choice',
+          question: '다음 응답 시간 데이터의 p99에 가장 가까운 값은? [50, 52, 48, 55, 51, 49, 53, 47, 54, 2500] (단위: ms)',
+          options: ['296ms', '52ms', '55ms', '2500ms'],
+          answer: 3,
+          explanation: 'p99는 상위 1% 요청도 이 시간 안에 처리됨을 의미합니다. 10개 데이터에서 가장 느린 1개(2500ms)가 p99에 해당합니다. 평균(296ms)은 이 이상치를 숨기므로 주의가 필요합니다.'
+        },
+        {
+          type: 'choice',
+          question: 'Core Web Vitals의 LCP(Largest Contentful Paint) "Good" 기준은?',
+          options: ['200ms 미만', '1.0초 미만', '2.5초 미만', '4.0초 미만'],
+          answer: 2,
+          explanation: 'LCP Good 기준은 2.5초 미만입니다. 2.5~4.0초는 Needs Improvement, 4.0초 초과는 Poor입니다.'
+        },
+        {
+          type: 'choice',
+          question: 'RUM(Real User Monitoring)과 Synthetic Monitoring의 가장 큰 차이점은?',
+          options: ['RUM이 더 저렴하다', 'RUM은 실제 사용자 데이터를 수집한다', 'Synthetic이 더 정확하다', 'Synthetic은 서버에서만 동작한다'],
+          answer: 1,
+          explanation: 'RUM은 실제 사용자의 브라우저에서 데이터를 수집하므로, 다양한 네트워크 환경과 디바이스에서의 실제 경험을 반영합니다. Synthetic은 제어된 환경에서의 시뮬레이션입니다.'
+        },
+        {
+          type: 'choice',
+          question: '마이크로서비스 아키텍처에서 각 서비스의 p99가 100ms일 때, 10개 서비스를 거치는 요청의 예상 지연은?',
+          options: ['p99가 여전히 100ms', '평균 1000ms, p99는 더 높음', '약 10%의 요청이 100ms 이상 지연', '모든 요청이 정확히 1000ms'],
+          answer: 2,
+          explanation: '각 서비스에서 99%가 100ms 이내라면, 10개를 모두 통과할 확률은 0.99^10 = 90.4%입니다. 즉 약 10%의 요청이 어느 한 서비스에서 지연을 겪게 됩니다.'
+        },
+        {
+          type: 'short',
+          question: 'Core Web Vitals 중 "예상치 못한 레이아웃 이동 정도"를 측정하는 지표의 약자는? (영어 3글자)',
+          answer: 'CLS',
+          explanation: 'CLS(Cumulative Layout Shift)는 페이지 로드 중 예상치 못한 레이아웃 이동의 누적 점수입니다. Good 기준은 0.1 미만입니다.'
+        }
+      ];
+
+      if (typeof QuizEngine !== 'undefined') {
+        QuizEngine.init('quiz-container', questions, 'module2');
+      }
+
+      // Update completion button state
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module2')) {
+        markButtonComplete();
+      }
+
+      // Initialize sidebar active states
+      initSidebar();
+    });
+
+    // ===== Complete Button Handler =====
+    function handleComplete() {
+      if (typeof ProgressTracker !== 'undefined') {
+        ProgressTracker.markComplete('module2');
+      }
+      markButtonComplete();
+    }
+
+    function markButtonComplete() {
+      var btn = document.getElementById('complete-btn');
+      if (btn) {
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'completed');
+        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>학습 완료됨';
+      }
+    }
+
+    // ===== Sidebar Navigation =====
+    function initSidebar() {
+      var sections = document.querySelectorAll('section[id]');
+      var sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+      // Intersection observer for active section tracking
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            sidebarLinks.forEach(function(link) {
+              link.classList.remove('active');
+              if (link.getAttribute('data-section') === id) {
+                link.classList.add('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-20% 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+
+      // Sidebar link click -> close mobile sidebar
+      sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var sidebar = document.getElementById('sidebar');
+          if (window.innerWidth < 1024) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    // ===== Progress Tracking =====
+    function updateProgress() {
+      var totalSections = 6;
+      var completed = 0;
+      for (var i = 1; i <= 5; i++) {
+        var check = document.getElementById('check-section-' + i);
+        if (check && check.classList.contains('done')) completed++;
+      }
+      var quizCheck = document.getElementById('check-quiz');
+      if (quizCheck && quizCheck.classList.contains('done')) completed++;
+
+      var percent = Math.round((completed / totalSections) * 100);
+      var bar = document.getElementById('progress-bar');
+      var percentText = document.getElementById('progress-percent');
+      if (bar) bar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+    }
+  </script>
+</body>
+</html>
