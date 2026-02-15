@@ -2,6 +2,8 @@
 
 장애 원인을 데이터로 추적하는 백엔드 개발자 되기 - 서비스 장애 분석 학습 플랫폼
 
+> https://duarbdhks.github.io/learning-modnitor/
+
 ## Modules
 
 | # | Module | Description |
