@@ -1,0 +1,17 @@
+{
+  "dashboard_id": "",
+  "title": "GraphQL Overview",
+  "fetched_at": "2026-02-16",
+  "metrics": {
+    "rum": [
+      "@resource.duration",
+      "@usr.email",
+      "@usr.id",
+      "@context.apollo.client.operationName",
+      "@context.error.type",
+      "@context.apollo.client.error.extensions.code",
+      "@view.url_host",
+      "@view.url_path_group"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 9: Node.js Event Loop Saturation | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 950:'#0a0a0f',900:'#111118',850:'#16161f',800:'#1e1e2a',700:'#2a2a3a',600:'#3a3a4d',400:'#8888a0',300:'#a0a0b8',200:'#c0c0d0',100:'#e0e0ea' }}}}}
+  </script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>홈으로</a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div><span class="text-amber-400 text-xs font-semibold tracking-wider uppercase">Lab 9</span><h1 class="text-lg sm:text-xl font-bold text-gray-100">Node.js Event Loop Saturation</h1></div>
+      </div>
+      <button class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800" onclick="document.getElementById('sidebar').classList.toggle('open')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+  </header>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">조사 진행</h3>
+        <div id="investigation-timeline"><p class="text-xs text-gray-600">조사를 시작하면 진행 상황이 표시됩니다.</p></div>
+        <div class="mt-6 pt-4 border-t border-gray-800"><div class="flex items-center justify-between text-xs text-gray-500 mb-2"><span>진행률</span><span id="progress-percent">0%</span></div><div class="w-full bg-gray-800 rounded-full h-1.5"><div id="progress-bar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-500" style="width:0%"></div></div></div>
+      </nav>
+    </aside>
+    <main class="flex-1 min-w-0">
+      <div id="scenario-container"></div>
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <div class="flex justify-center mb-8"><button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105">실습 완료</button></div>
+        <div class="flex items-center justify-between">
+          <a href="14-lab-rds-deadlock-storm.html" class="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Lab 8: RDS Deadlock Storm</a>
+          <a href="16-lab-disk-io-inode-exhaustion.html" class="flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors text-sm font-medium">Lab 10: Disk I/O & Inode Exhaustion<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="../js/progress.js"></script>
+  <script src="../js/scenario.js"></script>
+  <script src="../js/scenarios/lab9-event-loop-saturation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof ScenarioEngine !== 'undefined' && typeof SCENARIO_LAB9 !== 'undefined') { ScenarioEngine.init('scenario-container', SCENARIO_LAB9, 'module15'); }
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module15')) { markButtonComplete(); }
+    });
+    function handleComplete() { if (typeof ProgressTracker !== 'undefined') { ProgressTracker.markComplete('module15'); } markButtonComplete(); }
+    function markButtonComplete() { var b=document.getElementById('complete-btn'); if(b){b.classList.remove('bg-amber-600','hover:bg-amber-500');b.classList.add('bg-emerald-600','hover:bg-emerald-500');b.textContent='실습 완료됨';} }
+  </script>
+</body>
+</html>

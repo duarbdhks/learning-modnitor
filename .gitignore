@@ -1,6 +1,8 @@
 .claude/
 .omc/
+.omx/
 CLAUDE.md
+HANDOFF.md
 node_modules/
 .DS_Store
 .idea/

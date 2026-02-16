@@ -596,22 +596,20 @@
             <div class="mb-4">
               <h4 class="text-sm font-semibold text-gray-400 mb-3">변수(Variable) 활용</h4>
               <p class="text-sm text-gray-400 mb-3">$namespace, $pod, $interval 등을 사용하여 동적 대시보드를 구성합니다.</p>
-              <pre><code class="language-bash"># Prometheus 데이터소스에서 변수 쿼리
-label_values(kube_pod_info, namespace)
-label_values(kube_pod_info{namespace="$namespace"}, pod)</code></pre>
+              <pre><code class="language-bash"># Datadog 태그 기반 변수 쿼리
+tag:kube_namespace from kubernetes.cpu.usage.total
+tag:pod_name from kubernetes.cpu.usage.total{kube_namespace:$namespace}</code></pre>
             </div>
 
             <div class="mb-4">
-              <h4 class="text-sm font-semibold text-gray-400 mb-3">PromQL 쿼리 예시</h4>
+              <h4 class="text-sm font-semibold text-gray-400 mb-3">Datadog 쿼리 예시</h4>
               <pre><code class="language-bash"># API 요청 성공률
-sum(rate(http_requests_total{status!~"5..", namespace="$namespace"}[5m]))
-/
-sum(rate(http_requests_total{namespace="$namespace"}[5m])) * 100
+(sum:trace.graphql.server.request.hits{kube_namespace:$namespace}.as_count()
+ - sum:trace.graphql.server.request.errors{kube_namespace:$namespace}.as_count())
+/ sum:trace.graphql.server.request.hits{kube_namespace:$namespace}.as_count() * 100
 
 # p99 레이턴시
-histogram_quantile(0.99,
-  sum(rate(http_request_duration_seconds_bucket{namespace="$namespace"}[5m])) by (le)
-)</code></pre>
+p99:trace.graphql.server.request.duration{kube_namespace:$namespace}</code></pre>
             </div>
 
             <div class="bg-gray-950 rounded-lg p-4">

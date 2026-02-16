@@ -50,7 +50,7 @@
         <div class="progress-bar-track">
           <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
         </div>
-        <p id="progress-detail" class="text-xs text-gray-500 mt-2">0 / 7 모듈 완료</p>
+        <p id="progress-detail" class="text-xs text-gray-500 mt-2">0 / 19 모듈 완료</p>
       </div>
     </div>
   </header>
@@ -166,6 +166,200 @@
 
     </div>
 
+    <!-- Advanced Labs Divider -->
+    <div class="relative my-12">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-800"></div></div>
+      <div class="relative flex justify-center">
+        <span class="bg-gray-950 px-4 text-sm font-semibold text-amber-400 uppercase tracking-wider">Advanced Labs</span>
+      </div>
+    </div>
+    <p class="text-center text-gray-500 text-sm mb-8">실제 장애 시나리오를 기반으로 지표를 분석하고 근본 원인을 추적하는 실전 훈련</p>
+
+    <!-- Lab Cards -->
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+      <!-- Lab 1 -->
+      <a href="modules/7-lab-db-connection-pool.html" id="card-module7" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L1</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">DB Connection Pool 고갈</h2>
+            <p class="text-sm text-gray-400 mt-1">배치 쿼리 커넥션 점유 → HikariPool timeout → API 5xx</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module7" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module7" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 2 -->
+      <a href="modules/8-lab-slow-query-cpu.html" id="card-module8" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L2</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Slow Query CPU 포화</h2>
+            <p class="text-sm text-gray-400 mt-1">인덱스 누락 → full scan → CPU 90%+ → 전체 응답 지연</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module8" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module8" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 3 -->
+      <a href="modules/9-lab-memory-leak-oomkill.html" id="card-module9" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L3</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Memory Leak OOMKill</h2>
+            <p class="text-sm text-gray-400 mt-1">JVM 힙 누수 → OOMKill → Pod 재시작 반복</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module9" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module9" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 4 -->
+      <a href="modules/10-lab-crashloop-backoff.html" id="card-module10" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L4</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">CrashLoopBackOff</h2>
+            <p class="text-sm text-gray-400 mt-1">ConfigMap 오류 → Pod 시작 실패 → 반복 재시작</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module10" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module10" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 5 -->
+      <a href="modules/11-lab-frontend-regression.html" id="card-module11" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L5</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">GraphQL API 성능 회귀</h2>
+            <p class="text-sm text-gray-400 mt-1">배포 후 API 응답 급등 → APM trace 분석 → N+1 쿼리 + missing index</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module11" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module11" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 6 -->
+      <a href="modules/12-lab-cascading-failure.html" id="card-module12" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L6</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Cascading Failure</h2>
+            <p class="text-sm text-gray-400 mt-1">외부 API timeout → circuit breaker 실패 → 연쇄 장애</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module12" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module12" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 7 -->
+      <a href="modules/13-lab-deployment-rollback.html" id="card-module13" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L7</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Deployment Rollback 판단</h2>
+            <p class="text-sm text-gray-400 mt-1">카나리 배포 혼합 신호 → 롤백 vs 조사 의사결정</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module13" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module13" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 8 -->
+      <a href="modules/14-lab-rds-deadlock-storm.html" id="card-module14" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L8</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">RDS Deadlock Storm</h2>
+            <p class="text-sm text-gray-400 mt-1">트랜잭션 순서 충돌 → deadlock 폭증 → DML 처리 마비</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module14" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module14" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 9 -->
+      <a href="modules/15-lab-event-loop-saturation.html" id="card-module15" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L9</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Event Loop Saturation</h2>
+            <p class="text-sm text-gray-400 mt-1">Node.js event loop 블로킹 → 전체 API 응답 지연 → GC/Heap 분석</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module15" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module15" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 10 -->
+      <a href="modules/16-lab-disk-io-inode-exhaustion.html" id="card-module16" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L10</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Disk I/O & Inode Exhaustion</h2>
+            <p class="text-sm text-gray-400 mt-1">디스크 I/O 병목과 inode 고갈 장애 분석</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module16" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module16" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 11 -->
+      <a href="modules/17-lab-redis-cache-stampede.html" id="card-module17" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L11</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Redis Cache Stampede</h2>
+            <p class="text-sm text-gray-400 mt-1">캐시 스탬피드와 N+1 쿼리 장애 분석</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module17" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module17" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 12 -->
+      <a href="modules/18-lab-cpu-throttle-network.html" id="card-module18" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L12</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">CPU Throttling + Network Saturation</h2>
+            <p class="text-sm text-gray-400 mt-1">CPU 쓰로틀링과 네트워크 포화 복합 장애</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module18" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module18" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+    </div>
+
     <!-- Reset -->
     <div class="text-center mt-12">
       <button onclick="resetProgress()" class="reset-btn">
@@ -190,17 +384,17 @@
       const overall = ProgressTracker.getOverallProgress();
       const completedCount = Object.values(progress).filter(v => v).length;
 
-      // Update overall progress bar
       document.getElementById('progress-percent').textContent = overall + '%';
       document.getElementById('progress-fill').style.width = overall + '%';
       document.getElementById('progress-detail').textContent = completedCount + ' / ' + ProgressTracker.TOTAL_MODULES + ' 모듈 완료';
 
-      // Update each module card
+      // Theory modules (0-6)
       for (let i = 0; i <= 6; i++) {
         const moduleId = 'module' + i;
         const card = document.getElementById('card-' + moduleId);
         const badge = document.getElementById('badge-' + moduleId);
         const quizBadge = document.getElementById('quiz-' + moduleId);
+        if (!card || !badge) continue;
 
         if (progress[moduleId]) {
           card.classList.add('completed');
@@ -212,13 +406,36 @@
           badge.textContent = '미완료';
         }
 
-        // Quiz score
         const quizScore = ProgressTracker.getQuizScore(moduleId);
-        if (quizScore) {
+        if (quizScore && quizBadge) {
           quizBadge.classList.remove('hidden');
           quizBadge.textContent = 'Quiz ' + quizScore.score + '/' + quizScore.total;
+        }
+      }
+
+      // Lab modules (7-15)
+      for (let i = 7; i < ProgressTracker.TOTAL_MODULES; i++) {
+        const moduleId = 'module' + i;
+        const card = document.getElementById('card-' + moduleId);
+        const badge = document.getElementById('badge-' + moduleId);
+        const scenarioBadge = document.getElementById('scenario-' + moduleId);
+        if (!card || !badge) continue;
+
+        if (progress[moduleId]) {
+          card.classList.add('completed');
+          badge.className = 'completion-badge badge-complete';
+          badge.innerHTML = '<span class="completion-checkmark">&#10003;</span> 완료';
         } else {
-          quizBadge.classList.add('hidden');
+          card.classList.remove('completed');
+          badge.className = 'completion-badge badge-incomplete';
+          badge.textContent = '미완료';
+        }
+
+        const scenarioScore = ProgressTracker.getScenarioScore(moduleId);
+        if (scenarioScore && scenarioBadge) {
+          scenarioBadge.classList.remove('hidden');
+          scenarioBadge.textContent = scenarioScore.grade + ' 등급';
+          scenarioBadge.className = 'completion-badge badge-quiz scenario-grade-badge grade-' + scenarioScore.grade;
         }
       }
     }

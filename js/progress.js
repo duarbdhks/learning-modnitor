@@ -1,12 +1,13 @@
 const ProgressTracker = {
   STORAGE_KEY: 'metrics-learning-progress',
   QUIZ_PREFIX: 'metrics-learning-quiz-',
-  TOTAL_MODULES: 7,
+  SCENARIO_PREFIX: 'metrics-learning-scenario-',
+  TOTAL_MODULES: 19,
 
   getProgress() {
     const data = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
     const result = {};
-    for (let i = 0; i <= 6; i++) {
+    for (let i = 0; i < this.TOTAL_MODULES; i++) {
       result['module' + i] = data['module' + i] === true;
     }
     return result;
@@ -32,6 +33,15 @@ const ProgressTracker = {
     localStorage.setItem(this.QUIZ_PREFIX + moduleId, JSON.stringify({ score, total }));
   },
 
+  getScenarioScore(moduleId) {
+    const data = localStorage.getItem(this.SCENARIO_PREFIX + moduleId);
+    return data ? JSON.parse(data) : null;
+  },
+
+  saveScenarioScore(moduleId, scoreData) {
+    localStorage.setItem(this.SCENARIO_PREFIX + moduleId, JSON.stringify(scoreData));
+  },
+
   getOverallProgress() {
     const progress = this.getProgress();
     const completed = Object.values(progress).filter(v => v).length;
@@ -40,8 +50,10 @@ const ProgressTracker = {
 
   reset() {
     localStorage.removeItem(this.STORAGE_KEY);
-    for (let i = 0; i <= 6; i++) {
+    for (let i = 0; i < this.TOTAL_MODULES; i++) {
       localStorage.removeItem(this.QUIZ_PREFIX + 'module' + i);
+      localStorage.removeItem(this.SCENARIO_PREFIX + 'module' + i);
+      try { sessionStorage.removeItem('scenario-session-module' + i); } catch(e) {}
     }
   }
 };

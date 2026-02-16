@@ -1,0 +1,93 @@
+{
+  "dashboard_id": "",
+  "title": "NodeServer Health",
+  "fetched_at": "2026-02-16",
+  "metrics": {
+    "system_cpu": [
+      "system.cpu.idle",
+      "system.cpu.user",
+      "system.cpu.system",
+      "system.cpu.iowait",
+      "system.cpu.steal",
+      "system.load.1",
+      "system.load.5"
+    ],
+    "k8s_cpu": [
+      "kubernetes.cpu.cfs.throttled.periods",
+      "kubernetes.cpu.cfs.periods"
+    ],
+    "system_memory": [
+      "system.mem.pct_usable",
+      "system.mem.used",
+      "system.mem.usable",
+      "system.mem.cached",
+      "system.mem.total",
+      "system.mem.pgmajfault",
+      "system.swap.used",
+      "system.swap.free"
+    ],
+    "k8s_container": [
+      "kubernetes_state.container.status_report.count.terminated"
+    ],
+    "system_disk_io": [
+      "system.disk.total",
+      "system.disk.free",
+      "system.disk.in_use",
+      "system.io.r_s",
+      "system.io.w_s",
+      "system.io.rkb_s",
+      "system.io.wkb_s",
+      "system.io.r_await",
+      "system.io.w_await",
+      "system.io.await"
+    ],
+    "system_fs": [
+      "system.fs.inodes.total",
+      "system.fs.inodes.free",
+      "system.fs.inodes.in_use",
+      "system.fs.file_handles.allocated",
+      "system.fs.file_handles.max"
+    ],
+    "system_network": [
+      "system.net.bytes_rcvd",
+      "system.net.bytes_sent",
+      "system.net.tcp.retrans_segs",
+      "system.net.tcp.in_errs",
+      "system.net.conntrack.count",
+      "system.net.conntrack.max",
+      "system.net.tcp4.time_wait",
+      "system.net.tcp4.established",
+      "system.net.tcp4.close_wait"
+    ],
+    "system_processes": [
+      "system.processes.running",
+      "system.processes.total",
+      "system.processes.threads"
+    ],
+    "k8s_node_state": [
+      "kubernetes_state.node.by_condition",
+      "kubernetes_state.node.cpu_allocatable",
+      "kubernetes_state.node.memory_allocatable",
+      "kubernetes_state.node.cpu_requested",
+      "kubernetes_state.node.memory_requested",
+      "kubernetes_state.node.cpu_limit",
+      "kubernetes_state.node.memory_limit",
+      "kubernetes_state.node.pods_allocatable"
+    ],
+    "k8s_pod_deployment": [
+      "kubernetes_state.pod.status_phase",
+      "kubernetes_state.container.cpu_requested",
+      "kubernetes_state.container.cpu_limit",
+      "kubernetes_state.container.memory_requested",
+      "kubernetes_state.container.memory_limit",
+      "kubernetes_state.deployment.replicas_desired",
+      "kubernetes_state.deployment.replicas_available",
+      "kubernetes_state.deployment.replicas_unavailable"
+    ],
+    "kubelet": [
+      "kubernetes.kubelet.evictions",
+      "kubernetes.kubelet.runtime.errors",
+      "kubernetes.pods.running"
+    ]
+  }
+}
