@@ -1,5 +1,6 @@
 .claude/
 .omc/
+.omx/
 CLAUDE.md
 HANDOFF.md
 node_modules/
