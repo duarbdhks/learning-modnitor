@@ -57,3 +57,11 @@ const ProgressTracker = {
     }
   }
 };
+
+// Sidebar backdrop click-to-close
+document.addEventListener('click', function(e) {
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.classList.contains('open') && e.target === sidebar) {
+    sidebar.classList.remove('open');
+  }
+});
