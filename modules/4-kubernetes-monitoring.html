@@ -270,8 +270,8 @@
                 <li class="flex items-start gap-2">
                   <span class="text-cyan-400 mt-0.5">&#8250;</span>
                   <div>
-                    <code class="text-cyan-400 bg-gray-950 px-2 py-0.5 rounded text-xs">container_cpu_usage_seconds_total</code>
-                    <p class="text-gray-400 mt-1">실제 CPU 사용량 (누적값)</p>
+                    <code class="text-cyan-400 bg-gray-950 px-2 py-0.5 rounded text-xs">kubernetes.cpu.usage.total</code>
+                    <p class="text-gray-400 mt-1">실제 CPU 사용량 (Datadog K8s Integration)</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-2">
@@ -290,8 +290,8 @@
             </div>
 
             <div class="bg-gray-950 rounded-lg p-4 mb-4">
-              <p class="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider">PromQL 예시</p>
-              <pre class="text-sm overflow-x-auto"><code class="language-bash">rate(container_cpu_usage_seconds_total{pod="myapp-xxx"}[5m])</code></pre>
+              <p class="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider">Datadog Query 예시</p>
+              <pre class="text-sm overflow-x-auto"><code class="language-bash">avg:kubernetes.cpu.usage.total{pod_name:myapp-xxx}</code></pre>
             </div>
 
             <div class="warning-box rounded-lg p-4">
@@ -314,15 +314,15 @@
                 <li class="flex items-start gap-2">
                   <span class="text-orange-400 mt-0.5">&#8250;</span>
                   <div>
-                    <code class="text-orange-400 bg-gray-950 px-2 py-0.5 rounded text-xs">container_memory_working_set_bytes</code>
-                    <p class="text-gray-400 mt-1">실제 사용 중인 메모리 (캐시 제외)</p>
+                    <code class="text-orange-400 bg-gray-950 px-2 py-0.5 rounded text-xs">kubernetes.memory.working_set</code>
+                    <p class="text-gray-400 mt-1">실제 사용 중인 메모리 (캐시 제외, Datadog K8s Integration)</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-orange-400 mt-0.5">&#8250;</span>
                   <div>
-                    <code class="text-orange-400 bg-gray-950 px-2 py-0.5 rounded text-xs">container_memory_rss</code>
-                    <p class="text-gray-400 mt-1">RSS (Resident Set Size)</p>
+                    <code class="text-orange-400 bg-gray-950 px-2 py-0.5 rounded text-xs">kubernetes.memory.rss</code>
+                    <p class="text-gray-400 mt-1">RSS (Resident Set Size, Datadog K8s Integration)</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-2">
@@ -719,9 +719,9 @@ spec:
                 <div class="w-0.5 flex-1 bg-gray-800 mt-2"></div>
               </div>
               <div class="pb-6">
-                <h4 class="font-semibold text-purple-400 mb-2">CPU throttling 확인 (PromQL)</h4>
+                <h4 class="font-semibold text-purple-400 mb-2">CPU throttling 확인 (Datadog Query)</h4>
                 <div class="bg-gray-950 rounded-lg p-3 mb-2">
-                  <code class="text-sm text-cyan-400">rate(container_cpu_cfs_throttled_seconds_total[5m]) > 0</code>
+                  <code class="text-sm text-cyan-400">avg:kubernetes.cpu.cfs.throttled.seconds{pod_name:myapp-xxx} > 0</code>
                 </div>
                 <div class="bg-gray-900 rounded-lg p-3">
                   <p class="text-sm text-gray-300"><strong>결과:</strong> throttling 발생 중</p>
@@ -809,7 +809,7 @@ spec:
           <div class="success-box rounded-lg p-5">
             <p class="text-sm text-gray-300">
               <strong class="text-emerald-400">핵심 플로우:</strong>
-              kubectl top → describe → PromQL 순서로 점진적으로 깊이 있는 진단을 수행하세요.
+              kubectl top → describe → Datadog Metrics Query 순서로 점진적으로 깊이 있는 진단을 수행하세요.
             </p>
           </div>
         </div>

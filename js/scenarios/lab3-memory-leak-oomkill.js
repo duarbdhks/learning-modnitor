@@ -16,7 +16,7 @@ var SCENARIO_LAB3 = {
     title: '[P1] notification-service Pod 반복 재시작',
     message: 'notification-service Pod들이 주기적으로 재시작되고 있습니다. 최근 1시간 동안 총 8회 재시작이 감지되었으며, 사용자 알림 배달 실패율이 12%까지 증가했습니다.',
     metric: {
-      name: 'kube.pod.restart_count',
+      name: 'kubernetes.containers.restarts',
       value: '8',
       unit: 'restarts/hour',
       threshold: '2'
@@ -93,7 +93,7 @@ var SCENARIO_LAB3 = {
       hint: 'OOMKilled는 컨테이너가 메모리 limit을 초과하여 강제 종료되었다는 의미입니다. Pod가 재시작된 후 일시적으로 복구되지만 다시 OOMKill이 발생하는 패턴을 보면, 메모리 누수가 의심됩니다. Pod 메모리 사용 패턴을 자세히 분석해야 합니다.',
       choices: [
         {
-          text: 'Pod 메모리 사용량 상세 분석 (container_memory_working_set_bytes, JVM heap)',
+          text: 'Pod 메모리 사용량 상세 분석 (kubernetes.memory.working_set, JVM heap)',
           isOptimal: true,
           feedback: '정확한 판단입니다! OOMKilled 로그가 명확하므로 메모리 사용 패턴을 분석하여 누수 여부를 확인하는 것이 핵심입니다.',
           nextStep: 'step-2a'
@@ -169,7 +169,7 @@ var SCENARIO_LAB3 = {
       ],
       logs: [
         { timestamp: '03:14:00', level: 'WARN', source: 'jvm-metrics', message: 'notification-service JVM: heap used 1520 MB / 1536 MB (99%), Full GC triggered' },
-        { timestamp: '03:13:50', level: 'INFO', source: 'kubernetes', message: 'container_memory_working_set_bytes: 2.05 GB (exceeds limit 2.0 GB) - OOMKill triggered' },
+        { timestamp: '03:13:50', level: 'INFO', source: 'kubernetes', message: 'kubernetes.memory.working_set: 2.05 GB (exceeds limit 2.0 GB) - OOMKill triggered' },
         { timestamp: '03:13:40', level: 'WARN', source: 'jvm-gc', message: 'Full GC completed in 3.2s, freed only 45 MB (heap still at 98%)' },
         { timestamp: '03:13:20', level: 'WARN', source: 'jvm-gc', message: 'Full GC frequency increased: 8 Full GC events in last 10 minutes' },
         { timestamp: '03:00:00', level: 'INFO', source: 'kubernetes', message: 'Pod restarted after OOMKill, memory usage reset to 350 MB' }

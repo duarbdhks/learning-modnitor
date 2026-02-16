@@ -18,7 +18,7 @@ var SCENARIO_LAB4 = {
     timestamp: '2024-04-08 11:15:00 KST',
     tags: ['env:production', 'service:auth-service', 'k8s_namespace:platform', 'severity:p1', 'team:platform'],
     metric: {
-      name: 'kube_deployment_status_replicas_available',
+      name: 'kubernetes_state.deployment.replicas_available',
       value: 0,
       unit: 'pods',
       threshold: 1
