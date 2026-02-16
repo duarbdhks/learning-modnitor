@@ -1,0 +1,28 @@
+{
+  "dashboard_id": "",
+  "title": "Monitoring Overview",
+  "fetched_at": "2026-02-16",
+  "metrics": {
+    "rum": [
+      "@resource.duration"
+    ],
+    "k8s_per_deployment": [
+      "kubernetes.cpu.usage.total",
+      "kubernetes.cpu.limits",
+      "kubernetes.memory.usage",
+      "kubernetes.memory.limits",
+      "kubernetes.network.rx_bytes",
+      "kubernetes.network.tx_bytes",
+      "kubernetes.pods.running"
+    ],
+    "monitored_deployments": [
+      "gateway",
+      "cms",
+      "study-activity",
+      "b2c",
+      "app-session",
+      "static",
+      "dashboard"
+    ]
+  }
+}
