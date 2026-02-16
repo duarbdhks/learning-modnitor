@@ -147,11 +147,15 @@ var ScenarioEngine = {
     }
     html += '</div>';
 
+    html += '<div class="flex justify-center mt-6">';
+    html += '<button id="briefing-continue-btn" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all">조사 시작</button>';
+    html += '</div>';
+
     this.container.innerHTML = html;
 
-    setTimeout(function() {
+    document.getElementById('briefing-continue-btn').addEventListener('click', function() {
       if (onContinue) onContinue();
-    }, 300);
+    });
   },
 
   renderStep: function(stepId) {
@@ -406,11 +410,29 @@ var ScenarioEngine = {
     } else {
       if (selectedCard) {
         selectedCard.classList.add('tried', 'deadend');
-        selectedCard.style.pointerEvents = 'none';
-        selectedCard.style.opacity = '0.5';
       }
       this.deadEndsHit++;
       this.saveState();
+
+      var self = this;
+      var nextStep = this.data.steps[choice.nextStep];
+      if (nextStep && nextStep.isDeadEnd) {
+        var navBtn = document.createElement('div');
+        navBtn.className = 'flex justify-center mt-6 choice-next-btn';
+        navBtn.innerHTML = '<button class="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg transition-all">이 경로 확인하기</button>';
+        feedbackEl.after(navBtn);
+        navBtn.querySelector('button').addEventListener('click', function() {
+          self.renderDeadEnd(nextStep);
+        });
+      } else if (choice.nextStep) {
+        var navBtn = document.createElement('div');
+        navBtn.className = 'flex justify-center mt-6 choice-next-btn';
+        navBtn.innerHTML = '<button class="px-6 py-2.5 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-lg transition-all">이 경로로 진행</button>';
+        feedbackEl.after(navBtn);
+        navBtn.querySelector('button').addEventListener('click', function() {
+          self.renderStep(choice.nextStep);
+        });
+      }
     }
   },
 
