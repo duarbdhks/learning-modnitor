@@ -2,10 +2,19 @@
   var AUTH_KEY = 'site-authenticated';
   var PASS = 'duarbdhks';
 
+  function revealBody() {
+    document.body.classList.add('ready');
+  }
+
   if (sessionStorage.getItem(AUTH_KEY) === 'true') {
     var s = document.createElement('style');
-    s.textContent = 'body{display:block!important}';
+    s.textContent = 'body{display:block!important;opacity:0}';
     document.documentElement.appendChild(s);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', revealBody);
+    } else {
+      revealBody();
+    }
     return;
   }
 
@@ -31,6 +40,7 @@
       sessionStorage.setItem(AUTH_KEY, 'true');
       overlay.remove();
       document.body.style.display = '';
+      revealBody();
     } else {
       document.getElementById('auth-error').style.display = 'block';
       input.value = '';
