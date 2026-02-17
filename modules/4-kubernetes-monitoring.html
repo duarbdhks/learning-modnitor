@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260217">
+  <link rel="stylesheet" href="../css/style.css?v=20260218">
   <script src="../js/auth.js"></script>
   <style>
     html { scroll-behavior: smooth; }
@@ -905,6 +905,11 @@ spec:
           type: 'short',
           question: 'Kubernetes에서 resources.requests와 resources.limits를 동일하게 설정하면 해당 Pod의 QoS Class는? (영어)',
           answer: 'Guaranteed',
+          evaluator: {
+            mode: 'keyword',
+            keywords: ['guaranteed', '보장', 'qos guaranteed'],
+            minMatch: 1
+          },
           explanation: '모든 컨테이너에서 requests = limits로 설정하면 Guaranteed QoS Class가 됩니다. 이 Pod은 리소스 압박 시 가장 마지막에 퇴거됩니다.'
         }
       ];
@@ -924,10 +929,22 @@ spec:
 
     // ===== Complete Button Handler =====
     function handleComplete() {
-      if (typeof ProgressTracker !== 'undefined') {
-        ProgressTracker.markComplete('module4');
+      if (typeof ProgressTracker === 'undefined') {
+        alert('진도 저장 기능을 찾을 수 없습니다. 페이지를 새로고침해 주세요.');
+        return;
       }
-      markButtonComplete();
+
+      var completionResult = ProgressTracker.markComplete('module4');
+      var isSuccess = completionResult !== false && (!completionResult || completionResult.success !== false);
+      if (isSuccess) {
+        markButtonComplete();
+        return;
+      }
+
+      var message = completionResult && completionResult.message
+        ? completionResult.message
+        : '완료 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+      alert(message);
     }
 
     function markButtonComplete() {

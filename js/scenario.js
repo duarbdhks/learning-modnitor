@@ -8,6 +8,7 @@ var ScenarioEngine = {
   hintsUsed: 0,
   chartInstances: [],
   sessionKey: '',
+  postMortemStorageKey: '',
 
   init: function(containerId, scenarioData, moduleId) {
     this.container = document.getElementById(containerId);
@@ -15,6 +16,7 @@ var ScenarioEngine = {
     this.data = scenarioData;
     this.moduleId = moduleId;
     this.sessionKey = 'scenario-session-' + moduleId;
+    this.postMortemStorageKey = 'scenario-postmortem-' + moduleId;
     this.stepsVisited = [];
     this.deadEndsHit = 0;
     this.hintsUsed = 0;
@@ -69,6 +71,318 @@ var ScenarioEngine = {
 
   clearState: function() {
     try { sessionStorage.removeItem(this.sessionKey); } catch(e) {}
+  },
+
+  getPostMortemFieldId: function(field, idx) {
+    var raw = field && field.id ? String(field.id) : ('field-' + (idx + 1));
+    return raw.replace(/[^a-zA-Z0-9_-]/g, '-');
+  },
+
+  validatePostMortemTemplate: function(postMortem) {
+    var issues = [];
+    if (!postMortem || typeof postMortem !== 'object') {
+      issues.push('Post-mortem 설정이 없습니다.');
+      return {
+        valid: false,
+        issues: issues,
+        fieldIds: []
+      };
+    }
+
+    if (!postMortem.template || !Array.isArray(postMortem.template.fields) || postMortem.template.fields.length === 0) {
+      issues.push('Post-mortem template.fields가 비어 있습니다.');
+      return {
+        valid: false,
+        issues: issues,
+        fieldIds: []
+      };
+    }
+
+    var fieldIds = [];
+    var duplicates = {};
+    var self = this;
+    postMortem.template.fields.forEach(function(field, idx) {
+      var fieldId = self.getPostMortemFieldId(field, idx);
+      if (duplicates[fieldId]) {
+        issues.push('template fieldId 중복: ' + fieldId);
+      }
+      duplicates[fieldId] = true;
+      fieldIds.push(fieldId);
+    });
+
+    if (!postMortem.rubric || !Array.isArray(postMortem.rubric.criteria) || postMortem.rubric.criteria.length === 0) {
+      issues.push('Rubric 기준이 없어 채점 기준이 적용되지 않습니다.');
+      return {
+        valid: issues.length === 0,
+        issues: issues,
+        fieldIds: fieldIds
+      };
+    }
+
+    postMortem.rubric.criteria.forEach(function(criteria, idx) {
+      var criteriaFieldIds = [];
+      if (Array.isArray(criteria.fieldIds)) {
+        criteriaFieldIds = criteria.fieldIds.map(self.normalizePostMortemFieldId.bind(self));
+      }
+      if (criteria.fieldId) {
+        criteriaFieldIds.push(self.normalizePostMortemFieldId(criteria.fieldId));
+      }
+
+      if (criteriaFieldIds.length === 0) {
+        return;
+      }
+
+      criteriaFieldIds.forEach(function(fieldId) {
+        if (fieldIds.indexOf(fieldId) === -1) {
+          issues.push('Rubric 기준 #' + (idx + 1) + '에서 template에 없는 fieldId 사용: ' + fieldId);
+        }
+      });
+    });
+
+    return {
+      valid: issues.length === 0,
+      issues: issues,
+      fieldIds: fieldIds
+    };
+  },
+
+  normalizePostMortemFieldId: function(fieldId) {
+    return String(fieldId || '').replace(/[^a-zA-Z0-9_-]/g, '-');
+  },
+
+  restorePostMortemState: function() {
+    var fromSession = null;
+    var fromLocal = null;
+    try {
+      var s = sessionStorage.getItem(this.postMortemStorageKey);
+      fromSession = s ? JSON.parse(s) : null;
+    } catch(e) {}
+    try {
+      var l = localStorage.getItem(this.postMortemStorageKey);
+      fromLocal = l ? JSON.parse(l) : null;
+    } catch(e) {}
+
+    if (fromSession && fromLocal) {
+      var sessionTs = fromSession.updatedAt ? Date.parse(fromSession.updatedAt) : 0;
+      var localTs = fromLocal.updatedAt ? Date.parse(fromLocal.updatedAt) : 0;
+      if (isNaN(sessionTs)) sessionTs = 0;
+      if (isNaN(localTs)) localTs = 0;
+      return sessionTs >= localTs ? fromSession : fromLocal;
+    }
+    return fromSession || fromLocal || null;
+  },
+
+  persistPostMortemState: function(postMortemAnswers, rubricResult) {
+    var payload = {
+      postMortemAnswers: postMortemAnswers || {},
+      rubricScore: rubricResult ? rubricResult.rubricScore : null,
+      feedback: rubricResult ? rubricResult.feedback : null,
+      updatedAt: new Date().toISOString()
+    };
+    try { sessionStorage.setItem(this.postMortemStorageKey, JSON.stringify(payload)); } catch(e) {}
+    try { localStorage.setItem(this.postMortemStorageKey, JSON.stringify(payload)); } catch(e) {}
+    return payload;
+  },
+
+  collectPostMortemAnswers: function() {
+    var answers = {};
+    if (!this.container) return answers;
+    this.container.querySelectorAll('.postmortem-textarea[data-field-id]').forEach(function(textarea) {
+      var fieldId = textarea.getAttribute('data-field-id');
+      answers[fieldId] = textarea.value || '';
+    });
+    return answers;
+  },
+
+  evaluatePostMortemRubric: function(pm, answers) {
+    if (!pm || !pm.template || !Array.isArray(pm.template.fields) || pm.template.fields.length === 0) {
+      return { rubricScore: null, feedback: null };
+    }
+
+    var rubric = pm.rubric;
+    if (rubric && Array.isArray(rubric.criteria) && rubric.criteria.length > 0) {
+      var totalPoints = 0;
+      var earnedPoints = 0;
+      var unmet = [];
+      var self = this;
+
+      rubric.criteria.forEach(function(criteria, idx) {
+        var points = typeof criteria.points === 'number' ? criteria.points : 1;
+        totalPoints += points;
+
+        var targetTexts = [];
+        if (Array.isArray(criteria.fieldIds) && criteria.fieldIds.length > 0) {
+          criteria.fieldIds.forEach(function(fid) {
+            var normalizedFieldId = self.normalizePostMortemFieldId(fid);
+            targetTexts.push(String(answers[normalizedFieldId] || ''));
+          });
+        } else if (criteria.fieldId) {
+          var criteriaFieldId = self.normalizePostMortemFieldId(criteria.fieldId);
+          targetTexts.push(String(answers[criteriaFieldId] || ''));
+        } else {
+          pm.template.fields.forEach(function(f, fieldIdx) {
+            var fieldId = self.getPostMortemFieldId(f, fieldIdx);
+            targetTexts.push(String(answers[fieldId] || ''));
+          });
+        }
+        var target = targetTexts.join(' ').toLowerCase();
+
+        var passed = false;
+        if (criteria.regex) {
+          try {
+            var regex = new RegExp(String(criteria.regex), criteria.flags || 'i');
+            passed = regex.test(target);
+          } catch(e) {
+            passed = false;
+          }
+        } else if (Array.isArray(criteria.keywords) && criteria.keywords.length > 0) {
+          var keywordMatches = criteria.keywords.filter(function(k) {
+            return target.indexOf(String(k).toLowerCase()) !== -1;
+          }).length;
+          var required = typeof criteria.minMatch === 'number'
+            ? Math.max(1, criteria.minMatch)
+            : (criteria.match === 'all' ? criteria.keywords.length : 1);
+          passed = keywordMatches >= required;
+        } else {
+          passed = target.trim().length > 0;
+        }
+
+        if (passed) {
+          earnedPoints += points;
+        } else {
+          unmet.push(criteria.label || ('기준 ' + (idx + 1)));
+        }
+      });
+
+      var rubricScore = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+      var level = rubricScore >= 85 ? 'excellent' : (rubricScore >= 70 ? 'good' : (rubricScore >= 50 ? 'fair' : 'needs_improvement'));
+      var summary = rubricScore >= 85
+        ? '핵심 항목이 충분히 포함되었습니다.'
+        : (rubricScore >= 70 ? '전반적으로 좋지만 일부 항목 보강이 필요합니다.' : '핵심 근거가 부족합니다. 항목별 내용을 보강하세요.');
+      var details = [];
+      if (unmet.length > 0) details.push('보강 필요 기준: ' + unmet.join(', '));
+
+      return {
+        rubricScore: rubricScore,
+        feedback: {
+          level: level,
+          summary: summary,
+          details: details
+        }
+      };
+    }
+
+    var totalFields = pm.template.fields.length;
+    var answered = 0;
+    var detailed = 0;
+    var missing = [];
+    var that = this;
+
+    pm.template.fields.forEach(function(field, idx) {
+      var fieldId = that.getPostMortemFieldId(field, idx);
+      var value = String((answers && answers[fieldId]) || '').trim();
+      if (value.length > 0) {
+        answered++;
+        if (value.length >= 40) detailed++;
+      } else {
+        missing.push(field.label || ('항목 ' + (idx + 1)));
+      }
+    });
+
+    var coverageScore = Math.round((answered / totalFields) * 70);
+    var depthScore = Math.round((detailed / totalFields) * 30);
+    var score = coverageScore + depthScore;
+    var feedbackLevel = score >= 85 ? 'excellent' : (score >= 70 ? 'good' : (score >= 50 ? 'fair' : 'needs_improvement'));
+    var feedbackSummary = score >= 85
+      ? '구조가 명확하고 핵심 내용이 잘 정리되었습니다.'
+      : (score >= 70 ? '핵심 항목은 작성되었으며 세부 근거를 조금 더 보강하면 좋습니다.' : '누락 항목 또는 상세 근거가 부족합니다.');
+    var feedbackDetails = [];
+    if (missing.length > 0) {
+      feedbackDetails.push('누락 항목: ' + missing.join(', '));
+    }
+    if (answered > detailed) {
+      feedbackDetails.push('각 항목에 수치, 시각, 재현 조건 등 구체 정보를 추가하세요.');
+    }
+
+    return {
+      rubricScore: score,
+      feedback: {
+        level: feedbackLevel,
+        summary: feedbackSummary,
+        details: feedbackDetails
+      }
+    };
+  },
+
+  renderPostMortemFeedback: function(rubricResult) {
+    var feedbackEl = this.container ? this.container.querySelector('#postmortem-rubric-feedback') : null;
+    if (!feedbackEl || !rubricResult || rubricResult.rubricScore === null || !rubricResult.feedback) return;
+
+    var score = rubricResult.rubricScore;
+    var feedback = rubricResult.feedback;
+    var colorClass = score >= 85 ? 'text-emerald-400' : (score >= 70 ? 'text-blue-400' : (score >= 50 ? 'text-amber-400' : 'text-red-400'));
+    var detailsHtml = '';
+    if (Array.isArray(feedback.details) && feedback.details.length > 0) {
+      detailsHtml = '<ul class="mt-2 space-y-1 text-xs text-gray-400">' +
+        feedback.details.map(function(d) { return '<li>&#8226; ' + d + '</li>'; }).join('') +
+        '</ul>';
+    }
+
+    feedbackEl.innerHTML =
+      '<div class="mt-6 rounded-lg border border-gray-800 bg-gray-900/60 p-4">' +
+      '<div class="flex items-center justify-between">' +
+      '<span class="text-sm font-semibold text-gray-200">Post-mortem Rubric</span>' +
+      '<span class="text-sm font-bold ' + colorClass + '">' + score + ' / 100</span>' +
+      '</div>' +
+      '<p class="text-xs text-gray-300 mt-2">' + feedback.summary + '</p>' +
+      detailsHtml +
+      '</div>';
+  },
+
+  saveScenarioResult: function(score, postMortemAnswers, rubricResult) {
+    if (!this.moduleId || typeof ProgressTracker === 'undefined') return;
+    ProgressTracker.saveScenarioScore(this.moduleId, {
+      grade: score.grade,
+      label: score.label,
+      steps: score.steps,
+      hintsUsed: this.hintsUsed,
+      deadEndsHit: this.deadEndsHit,
+      postMortemAnswers: postMortemAnswers || {},
+      rubricScore: rubricResult ? rubricResult.rubricScore : null,
+      feedback: rubricResult ? rubricResult.feedback : null
+    });
+  },
+
+  bindPostMortemForm: function(pm, score) {
+    if (!pm || !pm.template || !Array.isArray(pm.template.fields) || pm.template.fields.length === 0) return;
+
+    var saved = this.restorePostMortemState();
+    var initialAnswers = saved && saved.postMortemAnswers ? saved.postMortemAnswers : {};
+    var self = this;
+
+    var stateCleared = false;
+    this.container.querySelectorAll('.postmortem-textarea[data-field-id]').forEach(function(textarea) {
+      var fieldId = textarea.getAttribute('data-field-id');
+      if (Object.prototype.hasOwnProperty.call(initialAnswers, fieldId)) {
+        textarea.value = initialAnswers[fieldId];
+      }
+      textarea.addEventListener('input', function() {
+        var answers = self.collectPostMortemAnswers();
+        var rubricResult = self.evaluatePostMortemRubric(pm, answers);
+        self.persistPostMortemState(answers, rubricResult);
+        self.renderPostMortemFeedback(rubricResult);
+        self.saveScenarioResult(score, answers, rubricResult);
+        if (!stateCleared) {
+          stateCleared = true;
+          self.clearState();
+        }
+      });
+    });
+
+    var rubricResult = this.evaluatePostMortemRubric(pm, initialAnswers);
+    this.persistPostMortemState(initialAnswers, rubricResult);
+    this.renderPostMortemFeedback(rubricResult);
+    this.saveScenarioResult(score, initialAnswers, rubricResult);
   },
 
   renderAlert: function(onContinue) {
@@ -261,7 +575,8 @@ var ScenarioEngine = {
         var content = document.getElementById('hint-content');
         if (content) {
           content.classList.toggle('hidden');
-          if (!content.classList.contains('hidden')) {
+          if (!content.classList.contains('hidden') && !hintBtn.dataset.revealed) {
+            hintBtn.dataset.revealed = '1';
             self.hintsUsed++;
             self.saveState();
           }
@@ -277,7 +592,13 @@ var ScenarioEngine = {
     var cfg = metricConfig.chartConfig;
     if (!cfg) return;
 
+    var chartType = metricConfig.chartType || 'line';
+    var isPieOrDoughnut = chartType === 'pie' || chartType === 'doughnut';
+
     var datasets = (cfg.datasets || []).map(function(ds) {
+      if (isPieOrDoughnut) {
+        return Object.assign({}, { borderWidth: ds.borderWidth || 2 }, ds);
+      }
       return Object.assign({}, {
         fill: ds.fill || false,
         tension: ds.tension || 0.3,
@@ -290,7 +611,6 @@ var ScenarioEngine = {
     var options = {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { intersect: false, mode: 'index' },
       plugins: {
         legend: {
           labels: { color: '#9ca3af', font: { size: 11 } }
@@ -302,8 +622,12 @@ var ScenarioEngine = {
           borderColor: '#374151',
           borderWidth: 1
         }
-      },
-      scales: {
+      }
+    };
+
+    if (!isPieOrDoughnut) {
+      options.interaction = { intersect: false, mode: 'index' };
+      options.scales = {
         x: {
           ticks: { color: '#6b7280', font: { size: 10 } },
           grid: { color: 'rgba(75,85,99,0.3)' }
@@ -312,8 +636,8 @@ var ScenarioEngine = {
           ticks: { color: '#6b7280', font: { size: 10 } },
           grid: { color: 'rgba(75,85,99,0.3)' }
         }
-      }
-    };
+      };
+    }
 
     if (metricConfig.annotations && typeof chartjsPluginAnnotation !== 'undefined') {
       options.plugins.annotation = { annotations: {} };
@@ -475,6 +799,9 @@ var ScenarioEngine = {
   renderResults: function(step) {
     var score = this.calculateScore();
     var rc = step.rootCause;
+    var savedPostMortem = this.restorePostMortemState();
+    var postMortemAnswers = savedPostMortem && savedPostMortem.postMortemAnswers ? savedPostMortem.postMortemAnswers : {};
+    var rubricResult = this.evaluatePostMortemRubric(step.postMortem, postMortemAnswers);
 
     var html = '<div class="scenario-results animate-fade-in">';
     html += '<div class="text-center mb-8">';
@@ -523,16 +850,13 @@ var ScenarioEngine = {
     var completeBtn = document.getElementById('complete-btn');
     if (completeBtn) completeBtn.parentElement.style.display = '';
 
-    if (this.moduleId && typeof ProgressTracker !== 'undefined') {
-      ProgressTracker.saveScenarioScore(this.moduleId, {
-        grade: score.grade,
-        label: score.label,
-        steps: score.steps,
-        hintsUsed: this.hintsUsed,
-        deadEndsHit: this.deadEndsHit
-      });
+    var hasPostMortemForm = !!(step.postMortem && step.postMortem.template && Array.isArray(step.postMortem.template.fields) && step.postMortem.template.fields.length > 0);
+    if (hasPostMortemForm) {
+      this.bindPostMortemForm(step.postMortem, score);
+    } else {
+      this.saveScenarioResult(score, postMortemAnswers, rubricResult);
+      this.clearState();
     }
-    this.clearState();
   },
 
   buildPostMortem: function(pm) {
@@ -540,12 +864,15 @@ var ScenarioEngine = {
     var html = '<div class="postmortem-form mt-8">';
     html += '<h3 class="text-lg font-bold text-white mb-4">Post-mortem 작성 연습</h3>';
     html += '<p class="text-sm text-gray-400 mb-4">실제 업무처럼 Post-mortem 문서를 작성해보세요.</p>';
-    pm.template.fields.forEach(function(f) {
+    var self = this;
+    pm.template.fields.forEach(function(f, idx) {
+      var fieldId = self.getPostMortemFieldId(f, idx);
       html += '<div class="mb-4">';
       html += '<label class="block text-sm font-medium text-gray-300 mb-1.5">' + f.label + '</label>';
-      html += '<textarea class="postmortem-textarea" placeholder="' + (f.placeholder || '') + '" rows="3"></textarea>';
+      html += '<textarea class="postmortem-textarea" data-field-id="' + fieldId + '" placeholder="' + (f.placeholder || '') + '" rows="3"></textarea>';
       html += '</div>';
     });
+    html += '<div id="postmortem-rubric-feedback"></div>';
     html += '</div>';
     return html;
   },

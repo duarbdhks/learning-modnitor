@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lab 10: Disk I/O & Inode Exhaustion | Service Incident Analysis</title>
+  <title>Lab 13: Monitor Tuning | Service Incident Analysis</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 950:'#0a0a0f',900:'#111118',850:'#16161f',800:'#1e1e2a',700:'#2a2a3a',600:'#3a3a4d',400:'#8888a0',300:'#a0a0b8',200:'#c0c0d0',100:'#e0e0ea' }}}}}
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 950:'#0a0a0f',900:'#111118',850:'#16161f',800:'#1e1e2a',700:'#2a2a3a',600:'#3a3a4d',400:'#8888a0',300:'#a0a0b8',200:'#c0c0d0',100:'#e0e0ea' }}}}};
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,11 +22,12 @@
       <div class="flex items-center gap-4">
         <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>홈으로</a>
         <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
-        <div><span class="text-amber-400 text-xs font-semibold tracking-wider uppercase">Lab 10</span><h1 class="text-lg sm:text-xl font-bold text-gray-100">Disk I/O & Inode Exhaustion</h1></div>
+        <div><span class="text-amber-400 text-xs font-semibold tracking-wider uppercase">Lab 13</span><h1 class="text-lg sm:text-xl font-bold text-gray-100">Monitor Tuning</h1></div>
       </div>
       <button class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800" onclick="document.getElementById('sidebar').classList.toggle('open')"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     </div>
   </header>
+
   <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
     <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
       <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
@@ -35,32 +36,35 @@
         <div class="mt-6 pt-4 border-t border-gray-800"><div class="flex items-center justify-between text-xs text-gray-500 mb-2"><span>진행률</span><span id="progress-percent">0%</span></div><div class="w-full bg-gray-800 rounded-full h-1.5"><div id="progress-bar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-500" style="width:0%"></div></div></div>
       </nav>
     </aside>
+
     <main class="flex-1 min-w-0">
       <div id="scenario-container"></div>
       <div class="border-t border-gray-800 pt-8 mt-16">
         <div class="flex justify-center mb-8"><button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105">실습 완료</button></div>
         <div class="flex items-center justify-between">
-          <a href="15-lab-event-loop-saturation.html" class="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Lab 9: Event Loop Saturation</a>
-          <a href="17-lab-redis-cache-stampede.html" class="flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors text-sm font-medium">Lab 11: Redis Cache Stampede<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+          <a href="21-datadog-cost-governance.html" class="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Module 21: Datadog Cost Governance</a>
+          <a href="23-lab-burn-rate-routing.html" class="flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors text-sm font-medium">Lab 14: Burn-rate Routing<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
         </div>
       </div>
     </main>
   </div>
+
   <script src="../js/progress.js"></script>
   <script src="../js/scenario.js"></script>
-  <script src="../js/scenarios/lab10-disk-io-inode.js"></script>
+  <script src="../js/scenarios/lab13-monitor-tuning.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      if (typeof ScenarioEngine !== 'undefined' && typeof SCENARIO_LAB10 !== 'undefined') { ScenarioEngine.init('scenario-container', SCENARIO_LAB10, 'module16'); }
-      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module16')) { markButtonComplete(); }
+      if (typeof ScenarioEngine !== 'undefined' && typeof SCENARIO_LAB13 !== 'undefined') { ScenarioEngine.init('scenario-container', SCENARIO_LAB13, 'module22'); }
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module22')) { markButtonComplete(); }
     });
+
     function handleComplete() {
       if (typeof ProgressTracker === 'undefined') {
         alert('진도 저장 기능을 찾을 수 없습니다. 페이지를 새로고침해 주세요.');
         return;
       }
 
-      var completionResult = ProgressTracker.markComplete('module16');
+      var completionResult = ProgressTracker.markComplete('module22');
       var isSuccess = completionResult !== false && (!completionResult || completionResult.success !== false);
       if (isSuccess) {
         markButtonComplete();
@@ -73,7 +77,14 @@
       alert(message);
     }
 
-    function markButtonComplete() { var b=document.getElementById('complete-btn'); if(b){b.classList.remove('bg-amber-600','hover:bg-amber-500');b.classList.add('bg-emerald-600','hover:bg-emerald-500');b.textContent='실습 완료됨';} }
+    function markButtonComplete() {
+      var b = document.getElementById('complete-btn');
+      if (b) {
+        b.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+        b.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+        b.textContent = '실습 완료됨';
+      }
+    }
   </script>
 </body>
 </html>
