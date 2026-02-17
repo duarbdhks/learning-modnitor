@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 19: Datadog Monitor Engineering | Service Incident Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+              900: '#111118',
+              850: '#16161f',
+              800: '#1e1e2a',
+              700: '#2a2a3a',
+              600: '#3a3a4d',
+              400: '#8888a0',
+              300: '#a0a0b8',
+              200: '#c0c0d0',
+              100: '#e0e0ea'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=20260218">
+  <script src="../js/auth.js"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .info-box { border-left: 4px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+    .tip-box { border-left: 4px solid #eab308; background: rgba(234, 179, 8, 0.08); }
+    .warning-box { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .success-box { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.08); }
+    .sidebar-link.active { color: #60a5fa; border-left-color: #3b82f6; }
+    .sidebar-link { transition: all 0.2s; }
+    .sidebar-link:hover { color: #93c5fd; border-left-color: #60a5fa; }
+    .sidebar-check.done { background: rgba(34, 197, 94, 0.2); border-color: #22c55e; color: #22c55e; }
+    pre[class*="language-"] { border-radius: 0.5rem; margin: 1rem 0; }
+    @media (max-width: 1023px) {
+      .sidebar-toggle-target { display: none; }
+      .sidebar-toggle-target.open { display: block; }
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../index.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          홈으로
+        </a>
+        <div class="hidden sm:block w-px h-6 bg-gray-800"></div>
+        <div>
+          <span class="text-blue-400 text-xs font-semibold tracking-wider uppercase">Module 19</span>
+          <h1 class="text-lg sm:text-xl font-bold text-gray-100">Datadog Monitor Engineering</h1>
+        </div>
+      </div>
+      <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition-colors" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex gap-8">
+    <aside id="sidebar" class="sidebar-toggle-target lg:block w-64 flex-shrink-0">
+      <nav class="lg:sticky lg:top-24 bg-gray-900 rounded-xl border border-gray-800 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">목차</h3>
+        <ul class="space-y-1">
+          <li><a href="#section-1" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-1"><span class="sidebar-check w-4 h-4 rounded-full border border-gray-700 flex items-center justify-center text-xs" id="check-section-1"></span>모니터 엔지니어링 목표</a></li>
+          <li><a href="#section-2" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-2"><span class="sidebar-check w-4 h-4 rounded-full border border-gray-700 flex items-center justify-center text-xs" id="check-section-2"></span>신호 품질 지표</a></li>
+          <li><a href="#section-3" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-3"><span class="sidebar-check w-4 h-4 rounded-full border border-gray-700 flex items-center justify-center text-xs" id="check-section-3"></span>모니터 설계 패턴</a></li>
+          <li><a href="#section-4" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-4"><span class="sidebar-check w-4 h-4 rounded-full border border-gray-700 flex items-center justify-center text-xs" id="check-section-4"></span>튜닝 운영 루프</a></li>
+          <li><a href="#section-5" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="section-5"><span class="sidebar-check w-4 h-4 rounded-full border border-gray-700 flex items-center justify-center text-xs" id="check-section-5"></span>실전 템플릿</a></li>
+          <li><a href="#quiz" class="sidebar-link flex items-center gap-2 px-3 py-2 text-sm text-gray-400 border-l-2 border-transparent rounded-r-md" data-section="quiz"><span class="sidebar-check w-4 h-4 rounded-full border border-gray-700 flex items-center justify-center text-xs" id="check-quiz"></span>퀴즈</a></li>
+        </ul>
+        <div class="mt-6 pt-4 border-t border-gray-800">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2"><span>진행률</span><span id="progress-percent">0%</span></div>
+          <div class="w-full bg-gray-800 rounded-full h-1.5"><div id="progress-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <section id="section-1" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 font-bold text-lg">1</span></div>
+          <h2 class="text-2xl font-bold text-gray-100">모니터 엔지니어링 목표</h2>
+        </div>
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>좋은 모니터는 단순히 임계치를 넘는 것을 감지하는 도구가 아니라, <strong class="text-gray-100">정확한 타이밍에 정확한 사람에게 실행 가능한 알림</strong>을 전달하는 시스템입니다.</p>
+          <div class="info-box rounded-lg p-5">
+            <h3 class="font-semibold text-blue-300 mb-2">실무 기준 3가지</h3>
+            <ul class="space-y-2 text-sm text-gray-300">
+              <li><strong class="text-gray-100">Actionable:</strong> 알림 메시지에 대응 방법(대시보드 링크, 런북, 오너)이 포함되어야 합니다.</li>
+              <li><strong class="text-gray-100">Accurate:</strong> 실제 사용자 영향과 상관없는 노이즈 알림 비율을 줄여야 합니다.</li>
+              <li><strong class="text-gray-100">Accountable:</strong> 모니터별 Owner/Review 주기를 명시해서 방치 모니터를 없애야 합니다.</li>
+            </ul>
+          </div>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h3 class="font-semibold text-gray-100 mb-2">Alert Policy 문장 템플릿</h3>
+            <p class="text-sm text-gray-400 mb-2">모든 모니터는 아래 문장을 채울 수 있어야 합니다.</p>
+            <pre><code class="language-text">When [condition] happens for [window],
+notify [team/channel] because [user impact],
+and run [playbook link].</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-2" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 font-bold text-lg">2</span></div>
+          <h2 class="text-2xl font-bold text-gray-100">신호 품질 지표</h2>
+        </div>
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>Datadog 모니터 품질을 정량화하면 "느낌 기반 튜닝"이 아니라 "데이터 기반 튜닝"으로 전환할 수 있습니다.</p>
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <h3 class="text-sm font-semibold text-emerald-300 mb-2">Precision</h3>
+              <p class="text-xs text-gray-400 mb-2">알림 중 실제 장애 비율</p>
+              <p class="font-mono text-sm text-gray-200">TP / (TP + FP)</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <h3 class="text-sm font-semibold text-cyan-300 mb-2">Recall</h3>
+              <p class="text-xs text-gray-400 mb-2">실제 장애 중 감지한 비율</p>
+              <p class="font-mono text-sm text-gray-200">TP / (TP + FN)</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <h3 class="text-sm font-semibold text-amber-300 mb-2">MTTA</h3>
+              <p class="text-xs text-gray-400 mb-2">경보 후 담당자 인지 시간</p>
+              <p class="font-mono text-sm text-gray-200">ack_ts - alert_ts</p>
+            </div>
+          </div>
+          <div class="tip-box rounded-lg p-5">
+            <h3 class="font-semibold text-amber-300 mb-2">운영 팁</h3>
+            <p class="text-sm">Precision이 0.5 미만이면 우선순위가 높은 모니터부터 조건을 강화하세요. Recall이 낮으면 감지 범위를 넓히고, MTTA가 높으면 라우팅 채널/온콜 정책을 조정해야 합니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-3" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 font-bold text-lg">3</span></div>
+          <h2 class="text-2xl font-bold text-gray-100">Datadog 모니터 설계 패턴</h2>
+        </div>
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h3 class="font-semibold text-gray-100 mb-3">상황별 추천 모니터 타입</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-800">
+                    <th class="px-3 py-2 text-left text-gray-400">상황</th>
+                    <th class="px-3 py-2 text-left text-gray-400">권장 타입</th>
+                    <th class="px-3 py-2 text-left text-gray-400">설계 포인트</th>
+                  </tr>
+                </thead>
+                <tbody class="text-gray-300">
+                  <tr class="border-b border-gray-800/60"><td class="px-3 py-2">고정 SLO 위반</td><td class="px-3 py-2">Metric Threshold</td><td class="px-3 py-2">평균이 아닌 p95/p99 사용</td></tr>
+                  <tr class="border-b border-gray-800/60"><td class="px-3 py-2">급격한 변동</td><td class="px-3 py-2">Change / Outlier</td><td class="px-3 py-2">기준선 대비 상승폭 감지</td></tr>
+                  <tr class="border-b border-gray-800/60"><td class="px-3 py-2">계절성 패턴</td><td class="px-3 py-2">Anomaly</td><td class="px-3 py-2">요일/시간대 패턴 학습 필요</td></tr>
+                  <tr><td class="px-3 py-2">복합 조건</td><td class="px-3 py-2">Composite</td><td class="px-3 py-2">신호 조합으로 노이즈 억제</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <pre><code class="language-bash"># 예시: 에러율 + 트래픽 최소치 복합 조건
+A = sum(last_5m):sum:trace.http.request.errors{service:checkout}.as_count()
+    / sum:trace.http.request.hits{service:checkout}.as_count() > 0.03
+B = sum(last_5m):sum:trace.http.request.hits{service:checkout}.as_count() > 200
+Composite = A && B</code></pre>
+          <div class="warning-box rounded-lg p-5">
+            <h3 class="font-semibold text-red-300 mb-2">안티 패턴</h3>
+            <p class="text-sm">트래픽이 거의 없는 야간 시간대에 "에러율 100%" 경보가 반복되는 경우가 많습니다. 비율 알림에는 항상 최소 분모 조건(트래픽 floor)을 붙이세요.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-4" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 font-bold text-lg">4</span></div>
+          <h2 class="text-2xl font-bold text-gray-100">튜닝 운영 루프</h2>
+        </div>
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <p>좋은 모니터는 한 번에 완성되지 않습니다. 주기적 리뷰 루프를 고정해야 품질이 유지됩니다.</p>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <ol class="space-y-3 text-sm">
+              <li><strong class="text-gray-100">1. Baseline 측정:</strong> 최근 2~4주 알림 히스토리에서 FP/FN 사례 수집</li>
+              <li><strong class="text-gray-100">2. Hypothesis:</strong> 임계치, 윈도우, 집계 함수 변경 가설 정의</li>
+              <li><strong class="text-gray-100">3. Canary Monitor:</strong> 동일 조건의 샤도우 모니터를 별도 채널에 발송</li>
+              <li><strong class="text-gray-100">4. Evaluate:</strong> Precision/Recall/MTTA 비교</li>
+              <li><strong class="text-gray-100">5. Promote:</strong> 성능이 개선된 경우에만 프로덕션 모니터 교체</li>
+            </ol>
+          </div>
+          <div class="success-box rounded-lg p-5">
+            <h3 class="font-semibold text-emerald-300 mb-2">권장 운영 리듬</h3>
+            <p class="text-sm">P1/P2 연관 모니터는 주 1회, 나머지는 월 1회 리뷰하세요. 리뷰 로그(변경 이유, 전후 지표)를 남기면 신규 온콜도 빠르게 맥락을 이해할 수 있습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-5" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"><span class="text-blue-400 font-bold text-lg">5</span></div>
+          <h2 class="text-2xl font-bold text-gray-100">실전 템플릿: 알림 메시지/런북 연결</h2>
+        </div>
+        <div class="space-y-6 text-gray-300 leading-relaxed">
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h3 class="font-semibold text-gray-100 mb-3">메시지 예시</h3>
+            <pre><code class="language-text">[P2][checkout-api] error rate 4.2% for 5m (threshold 3.0%)
+Impact: checkout success rate may degrade.
+Dashboard: https://app.datadoghq.com/dashboard/checkout-slo
+Runbook: https://internal/wiki/checkout-alert-runbook
+Owner: @team-checkout-oncall</code></pre>
+          </div>
+          <div class="info-box rounded-lg p-5">
+            <h3 class="font-semibold text-blue-300 mb-2">체크리스트</h3>
+            <ul class="space-y-2 text-sm">
+              <li>알림 제목에 <strong class="text-gray-100">서비스 + 심각도 + 증상</strong>이 포함되어 있는가?</li>
+              <li>대시보드 링크가 문제의 핵심 지표(p99, 에러율, 트래픽)로 바로 연결되는가?</li>
+              <li>런북에 즉시 실행 가능한 완화 조치(rollback, feature flag, failover)가 있는가?</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="quiz" class="mb-16">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-100">퀴즈</h2>
+        </div>
+        <p class="text-gray-400 text-sm mb-6">모니터 엔지니어링 핵심을 점검해봅시다. 총 5문항입니다.</p>
+        <div id="quiz-container"></div>
+      </section>
+
+      <div class="border-t border-gray-800 pt-8 mt-16">
+        <div class="flex justify-center mb-8">
+          <button id="complete-btn" onclick="handleComplete()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950">학습 완료</button>
+        </div>
+        <div class="flex items-center justify-between">
+          <a href="18-lab-cpu-throttle-network.html" class="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Lab 12: CPU Throttling + Network Saturation</a>
+          <a href="20-datadog-slo-operations.html" class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">Module 20: Datadog SLO Operations<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="../js/progress.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var questions = [
+        {
+          type: 'choice',
+          question: 'Monitor Engineering 관점에서 가장 중요한 품질 기준은?',
+          options: ['알림 개수 최대화', '실행 가능한 정확한 알림', '모든 지표를 즉시 알림', 'threshold를 항상 낮게 설정'],
+          answer: 1,
+          explanation: '좋은 모니터는 노이즈를 줄이고 실제 대응 가능한 알림을 전달해야 합니다.'
+        },
+        {
+          type: 'choice',
+          question: '에러율 모니터에서 야간 오탐을 줄이는 가장 효과적인 방법은?',
+          options: ['threshold를 0으로 설정', '분모 트래픽 floor 조건 추가', '무조건 anomaly monitor 사용', 'renotify를 1분으로 단축'],
+          answer: 1,
+          explanation: '트래픽이 작은 구간에서 비율 왜곡이 크므로 최소 요청 수 조건을 함께 두는 것이 핵심입니다.'
+        },
+        {
+          type: 'choice',
+          question: 'Precision이 낮다는 것은 무엇을 의미하나요?',
+          options: ['장애를 놓치고 있다', '알림 중 오탐 비율이 높다', '평균 응답시간이 길다', 'MTTA가 짧다'],
+          answer: 1,
+          explanation: 'Precision = TP / (TP + FP). Precision이 낮으면 FP가 많다는 뜻입니다.'
+        },
+        {
+          type: 'choice',
+          question: '튜닝 변경을 안전하게 적용하는 방법으로 가장 적절한 것은?',
+          options: ['모든 프로덕션 모니터를 즉시 교체', '주요 모니터를 모두 비활성화', '샤도우(카나리) 모니터로 먼저 검증', '알림 채널을 제거하고 대시보드만 사용'],
+          answer: 2,
+          explanation: '기존 모니터를 유지한 채 샤도우 모니터 성능을 비교해야 운영 리스크를 줄일 수 있습니다.'
+        },
+        {
+          type: 'short',
+          question: '경보 후 담당자가 인지하기까지 걸린 시간을 나타내는 지표 약자는? (영문 4자)',
+          answer: 'MTTA',
+          evaluator: {
+            mode: 'keyword',
+            keywords: ['mtta', 'mean time to acknowledge'],
+            minMatch: 1
+          },
+          explanation: 'MTTA(Mean Time To Acknowledge)는 알림 라우팅 품질을 평가할 때 핵심 지표입니다.'
+        }
+      ];
+
+      if (typeof QuizEngine !== 'undefined') {
+        QuizEngine.init('quiz-container', questions, 'module19');
+      }
+
+      if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module19')) {
+        markButtonComplete();
+      }
+
+      initSidebar();
+    });
+
+    function handleComplete() {
+      if (typeof ProgressTracker === 'undefined') {
+        alert('진도 저장 기능을 찾을 수 없습니다. 페이지를 새로고침해 주세요.');
+        return;
+      }
+
+      var completionResult = ProgressTracker.markComplete('module19');
+      var isSuccess = completionResult !== false && (!completionResult || completionResult.success !== false);
+      if (isSuccess) {
+        markButtonComplete();
+        return;
+      }
+
+      var message = completionResult && completionResult.message
+        ? completionResult.message
+        : '완료 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+      alert(message);
+    }
+
+    function markButtonComplete() {
+      var btn = document.getElementById('complete-btn');
+      if (btn) {
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'completed');
+        btn.innerHTML = '<svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>학습 완료됨';
+      }
+    }
+
+    function initSidebar() {
+      var sections = document.querySelectorAll('section[id]');
+      var sidebarLinks = document.querySelectorAll('.sidebar-link');
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.getAttribute('id');
+            sidebarLinks.forEach(function(link) {
+              link.classList.remove('active');
+              if (link.getAttribute('data-section') === id) {
+                link.classList.add('active');
+              }
+            });
+
+            if (id.indexOf('section-') === 0) {
+              var check = document.getElementById('check-' + id);
+              if (check && !check.classList.contains('done')) {
+                check.classList.add('done');
+                check.innerHTML = '&#10003;';
+              }
+            }
+            if (id === 'quiz') {
+              var quizCheck = document.getElementById('check-quiz');
+              if (quizCheck && !quizCheck.classList.contains('done')) {
+                quizCheck.classList.add('done');
+                quizCheck.innerHTML = '&#10003;';
+              }
+            }
+            updateProgress();
+          }
+        });
+      }, { rootMargin: '-20% 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+
+      sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var sidebar = document.getElementById('sidebar');
+          if (window.innerWidth < 1024 && sidebar) {
+            sidebar.classList.remove('open');
+          }
+        });
+      });
+    }
+
+    function updateProgress() {
+      var totalSections = 6;
+      var completed = 0;
+      for (var i = 1; i <= 5; i++) {
+        var check = document.getElementById('check-section-' + i);
+        if (check && check.classList.contains('done')) {
+          completed++;
+        }
+      }
+      var quizCheck = document.getElementById('check-quiz');
+      if (quizCheck && quizCheck.classList.contains('done')) {
+        completed++;
+      }
+      var percent = Math.round((completed / totalSections) * 100);
+      var bar = document.getElementById('progress-bar');
+      var percentText = document.getElementById('progress-percent');
+      if (bar) bar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+    }
+  </script>
+</body>
+</html>

@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260217">
+  <link rel="stylesheet" href="../css/style.css?v=20260218">
   <script src="../js/auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
@@ -56,7 +56,25 @@
       if (typeof ScenarioEngine !== 'undefined' && typeof SCENARIO_LAB5 !== 'undefined') { ScenarioEngine.init('scenario-container', SCENARIO_LAB5, 'module11'); }
       if (typeof ProgressTracker !== 'undefined' && ProgressTracker.isComplete('module11')) { markButtonComplete(); }
     });
-    function handleComplete() { if (typeof ProgressTracker !== 'undefined') { ProgressTracker.markComplete('module11'); } markButtonComplete(); }
+    function handleComplete() {
+      if (typeof ProgressTracker === 'undefined') {
+        alert('진도 저장 기능을 찾을 수 없습니다. 페이지를 새로고침해 주세요.');
+        return;
+      }
+
+      var completionResult = ProgressTracker.markComplete('module11');
+      var isSuccess = completionResult !== false && (!completionResult || completionResult.success !== false);
+      if (isSuccess) {
+        markButtonComplete();
+        return;
+      }
+
+      var message = completionResult && completionResult.message
+        ? completionResult.message
+        : '완료 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+      alert(message);
+    }
+
     function markButtonComplete() { var b=document.getElementById('complete-btn'); if(b){b.classList.remove('bg-amber-600','hover:bg-amber-500');b.classList.add('bg-emerald-600','hover:bg-emerald-500');b.textContent='실습 완료됨';} }
   </script>
 </body>

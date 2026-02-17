@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260217">
+  <link rel="stylesheet" href="css/style.css?v=20260218">
   <script src="js/auth.js"></script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen" style="display:none">
@@ -54,7 +54,8 @@
         <div class="progress-bar-track">
           <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
         </div>
-        <p id="progress-detail" class="text-xs text-gray-500 mt-2">0 / 19 모듈 완료</p>
+        <p id="progress-detail" class="text-xs text-gray-500 mt-2">0 / 26 모듈 완료</p>
+        <div id="progress-migration-notice" class="callout callout-warning mt-4 hidden"></div>
       </div>
     </div>
   </header>
@@ -364,6 +365,137 @@
 
     </div>
 
+    <!-- Datadog Advanced Theory Divider -->
+    <div class="relative my-12">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-800"></div></div>
+      <div class="relative flex justify-center">
+        <span class="bg-gray-950 px-4 text-sm font-semibold text-indigo-400 uppercase tracking-wider">Datadog Advanced</span>
+      </div>
+    </div>
+    <p class="text-center text-gray-500 text-sm mb-8">Datadog 고급 실무 주제(설계, 상관분석, 비용 최적화)를 다루는 확장 모듈</p>
+
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+      <!-- Module 19 -->
+      <a href="modules/19-datadog-monitor-engineering.html" id="card-module19" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">19</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">Datadog Monitor Engineering</h2>
+            <p class="text-sm text-gray-400 mt-1">정탐률 중심 모니터 튜닝, 알림 품질 개선, 운영 자동화</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module19" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module19" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 20 -->
+      <a href="modules/20-datadog-slo-operations.html" id="card-module20" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">20</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">Datadog SLO Operations</h2>
+            <p class="text-sm text-gray-400 mt-1">Error Budget 운영, Burn Rate 해석, 운영 의사결정 자동화</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module20" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module20" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Module 21 -->
+      <a href="modules/21-datadog-cost-governance.html" id="card-module21" class="module-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="module-number">21</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">Datadog 거버넌스 & 비용 최적화</h2>
+            <p class="text-sm text-gray-400 mt-1">태깅 표준화, 지표 보존 정책, 비용 이상 탐지 운영</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module21" class="completion-badge badge-incomplete">미완료</span>
+          <span id="quiz-module21" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Datadog Advanced Labs Divider -->
+    <div class="relative my-12">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-800"></div></div>
+      <div class="relative flex justify-center">
+        <span class="bg-gray-950 px-4 text-sm font-semibold text-amber-400 uppercase tracking-wider">Datadog Advanced Labs</span>
+      </div>
+    </div>
+    <p class="text-center text-gray-500 text-sm mb-8">Datadog 실전 운영 역량을 강화하는 고급 시나리오 실습</p>
+
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+      <!-- Lab 13 -->
+      <a href="modules/22-lab-monitor-tuning.html" id="card-module22" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L13</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Monitor Tuning 실습</h2>
+            <p class="text-sm text-gray-400 mt-1">정탐률 개선을 위해 임계치/노이즈 필터를 조정하는 모니터 튜닝 시나리오</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module22" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module22" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 14 -->
+      <a href="modules/23-lab-burn-rate-routing.html" id="card-module23" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L14</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Burn-rate Routing 실습</h2>
+            <p class="text-sm text-gray-400 mt-1">Burn Rate 급등 상황에서 알림 라우팅과 대응 우선순위를 결정하는 훈련</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module23" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module23" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 15 -->
+      <a href="modules/24-lab-sampling-cardinality.html" id="card-module24" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L15</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Sampling & Cardinality 실습</h2>
+            <p class="text-sm text-gray-400 mt-1">샘플링 정책과 태그 cardinality 최적화로 비용/성능 균형 맞추기</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module24" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module24" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+      <!-- Lab 16 -->
+      <a href="modules/25-lab-incident-workflow.html" id="card-module25" class="lab-card block no-underline group">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="lab-number">L16</div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">Incident Workflow 실습</h2>
+            <p class="text-sm text-gray-400 mt-1">탐지부터 에스컬레이션, 복구, 회고까지 표준 장애 대응 워크플로우 훈련</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-800">
+          <span id="badge-module25" class="completion-badge badge-incomplete">미완료</span>
+          <span id="scenario-module25" class="completion-badge badge-quiz hidden"></span>
+        </div>
+      </a>
+
+    </div>
+
     <!-- Reset -->
     <div class="text-center mt-12">
       <button onclick="resetProgress()" class="reset-btn">
@@ -383,7 +515,14 @@
   <script src="js/progress.js"></script>
   <script src="js/quiz.js"></script>
   <script>
+    if (typeof ProgressTracker !== 'undefined') {
+      ProgressTracker.TOTAL_MODULES = 26;
+    }
+
     function updateDashboard() {
+      if (typeof ProgressTracker === 'undefined') {
+        return;
+      }
       const progress = ProgressTracker.getProgress();
       const overall = ProgressTracker.getOverallProgress();
       const completedCount = Object.values(progress).filter(v => v).length;
@@ -392,8 +531,31 @@
       document.getElementById('progress-fill').style.width = overall + '%';
       document.getElementById('progress-detail').textContent = completedCount + ' / ' + ProgressTracker.TOTAL_MODULES + ' 모듈 완료';
 
-      // Theory modules (0-6)
-      for (let i = 0; i <= 6; i++) {
+      var migrationWarnings = ProgressTracker.takeReevaluationWarnings && ProgressTracker.takeReevaluationWarnings();
+      var migrationNotice = document.getElementById('progress-migration-notice');
+      if (migrationNotice) {
+        if (Array.isArray(migrationWarnings) && migrationWarnings.length > 0) {
+          var moduleLabels = migrationWarnings.map(function(item) {
+            return (item && item.moduleId ? item.moduleId.replace('module', '') : '').trim();
+          }).filter(function(v) {
+            return !!v;
+          });
+
+          migrationNotice.classList.remove('hidden');
+          migrationNotice.innerHTML =
+            '<div class="callout-title">진도 기준 변경 안내</div>' +
+            '<p class="text-sm">최근 Datadog 기준 업데이트로 이전 완료 기록이 최신 규칙에 맞지 않아 미완료로 재평가된 모듈이 있습니다: ' +
+            '<strong>module' + moduleLabels.join(', module') + '</strong>.</p>' +
+            '<p class="text-xs text-gray-400 mt-2">해당 모듈은 퀴즈 80% 이상(이론), 실습 B 이상(시나리오) 조건을 다시 맞춰서 완료하세요.</p>' ;
+        } else {
+          migrationNotice.classList.add('hidden');
+          migrationNotice.innerHTML = '';
+        }
+      }
+
+      // Theory modules (0-6, 19-21)
+      const theoryModules = [0, 1, 2, 3, 4, 5, 6, 19, 20, 21];
+      for (const i of theoryModules) {
         const moduleId = 'module' + i;
         const card = document.getElementById('card-' + moduleId);
         const badge = document.getElementById('badge-' + moduleId);
@@ -417,8 +579,9 @@
         }
       }
 
-      // Lab modules (7-15)
-      for (let i = 7; i < ProgressTracker.TOTAL_MODULES; i++) {
+      // Lab modules (7-18, 22-25)
+      const labModules = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 22, 23, 24, 25];
+      for (const i of labModules) {
         const moduleId = 'module' + i;
         const card = document.getElementById('card-' + moduleId);
         const badge = document.getElementById('badge-' + moduleId);
